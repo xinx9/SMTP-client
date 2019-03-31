@@ -173,6 +173,14 @@ def PasswordGenerator():
         password += ''.join(random.choice(string.ascii_letters + string.digits))
     return password
 
+##############################################
+##  Validate user                           ##
+##  compares userData to encodedUserData    ##
+##  sets flag to True if successful compare ##
+##  Euser = base64 encoded username         ##
+##  Epassword = base64 encoded password     ##
+##  userData = Euser:Epassword              ##
+##############################################
 def validate(user, password):
     flag = False
     Euser = AuthenticateEncode(user)
