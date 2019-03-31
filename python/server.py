@@ -158,7 +158,8 @@ def CreateUser(user):
         Euser = AuthenticateEncode(user)
         Epassword = AuthenticateEncode(password)
         userData = Euser + ":" + Epassword
-        userpassfile.write(userData + "\n")
+        userpassfile.write(userData)
+        userpassfile.write("\n")
     except Exception as e:
         print("Error: %" %e)
     
@@ -175,8 +176,17 @@ def PasswordGenerator():
     return password
 
 def validate(user, password):
-    file = open(".user-pass", "r")
+    flag = False
     Euser = AuthenticateEncode(user)
     Epassword = AuthenticateEncode(password)
     userData = Euser + ":" + Epassword
+    with open(".user-pass", "r+") as f:
+        for b64d in f:
+            encodedUserData = b64d.readline()
+            if(userData == encodedUserData):
+                flag = True
+            else:
+                flag = False
+    f.close()
+    return flag
     
