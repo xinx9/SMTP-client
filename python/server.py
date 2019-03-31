@@ -5,8 +5,6 @@
 ##                                          ##
 ##  Project Name: server.py                 ##
 ##                                          ##
-##  Class: 447-001                          ##
-##                                          ##
 ##  Definition: this is a SMTP server       ##
 ##  which both takes a clients request      ##
 ##  to send an email to an authenticated    ##

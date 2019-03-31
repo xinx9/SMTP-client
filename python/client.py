@@ -5,8 +5,6 @@
 ##                                          ##
 ##  Project Name: client.py                 ##
 ##                                          ##
-##  Class: 447-001                          ##
-##                                          ##
 ##  Description: this program uses smtp     ##
 ##  over TCP to send an email to another    ##
 ##  authenticated user on the server        ##
