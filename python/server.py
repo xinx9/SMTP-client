@@ -36,7 +36,7 @@ MAX = 1024 # 1KB
 ##  Bad Input Response  ##
 ##########################
 if(len(sys.argv) != 3):
-    print("\n> python3 server.py <IP ADDRESS> <TCP PORT> <UDP PORT>")
+    print("\nUsage: python3 server.py <IP ADDRESS> <TCP PORT> <UDP PORT>")
     sys.exit(1)
 
 ######################
@@ -111,6 +111,35 @@ while inputs:
 ##  SMTP Email write Service  ##
 ################################
 def SMTP(conn,tport):
+    count = 0
+    while True:
+        command = conn.recv(MAX).decode().upper()
+        if(command.find("HELO") == 0 and count == 0):
+            count += 1
+            responce = "250 OK"
+            conn.send(responce.encode())
+        elif(command.find("AUTH") == 0 and count == 1):
+            count += 1
+            response = AuthenticateEncode("334 username:")
+            conn.send(responce.encode())
+            username = conn.recv(MAX).decode()
+            conn.send(responce.encode())
+            if(validate(username)):
+                response = AuthenticateEncode("334 password:")
+                conn.send(responce.encode())
+                password = conn.recv(MAX).decode()
+
+            else:
+        elif(command.find("MAIL FROM") == 0 and count == 2):
+            count += 1
+        elif(command.find("RCPT TO") == 0 and count == 3):
+            count += 1
+        elif(command.find("DATA") == 0 and count == 4):
+            count += 1
+        elif(command.find("QUIT") == 0):
+            conn.close()
+        else:
+            count = 0
     return 0
 
 ###############################
@@ -118,30 +147,6 @@ def SMTP(conn,tport):
 ###############################
 def HTTP(uport):
     return 0
-
-######################################################
-##  Authenticate clear text input with base64       ##
-##  Cin = clear text input                          ##
-##  Sin = salted input                              ##
-##  Ein = encoded input                             ##
-######################################################
-def AuthenticateEncode(Cin):
-    salt = "447"
-    Sin = Cin + salt
-    Ein = base64.b64encode(Sin)
-    return Ein
-
-######################################################
-##  Authenticate encoded input with base64          ##
-##  Cin = clear text input                          ##
-##  Sin = salted input                              ##
-##  Ein = encoded input                             ##
-######################################################
-def AuthenticateDecode(Ein):
-    salt = "447"
-    Sin = base64.b64decode(Ein)
-    Cin = string.replace(salt, "")
-    return Cin
 
 ######################################
 ##  Create user on first time login ##
@@ -160,7 +165,6 @@ def CreateUser(user):
         userpassfile.write("\n")
     except Exception as e:
         print("Error: %" %e)
-    
 
 ##############################
 ##  password generator      ##
@@ -196,3 +200,26 @@ def validate(user, password):
     f.close()
     return flag
     
+def validate(userData):
+    flag = False
+    with open(".user-pass", "r+") as f:
+        for b64d in f:
+            encodedUserData = b64d.readline()
+            if(encodedUserData.find(userData) == 0):
+                flag = True
+            else:
+                flag = False
+    f.close()
+    return flag
+    
+######################################################
+##  Authenticate clear text input with base64       ##
+##  Cin = clear text input                          ##
+##  Sin = salted input                              ##
+##  Ein = encoded input                             ##
+######################################################
+def AuthenticateEncode(Cin):
+    salt = "447"
+    Sin = Cin + salt
+    Ein = base64.b64encode(Sin)
+    return Ein

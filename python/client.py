@@ -39,3 +39,27 @@ while True:
     msg = input()
     tcp.send(msg.encode())
 tcp.close()
+
+######################################################
+##  Authenticate clear text input with base64       ##
+##  Cin = clear text input                          ##
+##  Sin = salted input                              ##
+##  Ein = encoded input                             ##
+######################################################
+def AuthenticateEncode(Cin):
+    salt = "447"
+    Sin = Cin + salt
+    Ein = base64.b64encode(Sin)
+    return Ein
+
+######################################################
+##  Authenticate encoded input with base64          ##
+##  Cin = clear text input                          ##
+##  Sin = salted input                              ##
+##  Ein = encoded input                             ##
+######################################################
+def AuthenticateDecode(Ein):
+    salt = "447"
+    Sin = base64.b64decode(Ein)
+    Cin = string.replace(salt, "")
+    return Cin
