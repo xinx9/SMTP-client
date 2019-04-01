@@ -30,6 +30,7 @@ import _thread
 import base64
 import random
 import string
+import time
 
 MAX = 1024 # 1KB
 ##########################
@@ -37,19 +38,6 @@ MAX = 1024 # 1KB
 ##########################
 if(len(sys.argv) != 3):
     print("\nUsage: python3 server.py <IP ADDRESS> <TCP PORT> <UDP PORT>")
-    sys.exit(1)
-
-######################
-##  File Managment  ##
-######################
-CwdPath = os.getcwd()
-path = os.path.join(CwdPath, r'db')
-try:
-    if(not os.path.exists(path)):
-        os.mkdirs(path)
-    os.chdir(path)
-except Exception as e:
-    print("Error: %" %e)
     sys.exit(1)
 
 ####################################
@@ -70,6 +58,18 @@ print("\nUDP Binding\n")
 UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
 udp.bind(UDP_ServerAddress)
 print("UDP Bound\n")
+
+######################
+##  File Managment  ##
+######################
+CwdPath = os.getcwd()
+path = os.path.join(CwdPath, r'db')
+try:
+    if(not os.path.exists(path)):
+        os.mkdirs(path)
+except Exception as e:
+    print("Error: %" %e)
+    sys.exit(1)
 
 inputs = [tcp,udp]
 outputs = []
@@ -114,30 +114,66 @@ def SMTP(conn,tport):
     count = 0
     while True:
         command = conn.recv(MAX).decode().upper()
-        if(command.find("HELO") == 0 and count == 0):
+        if((command.find("HELO") == 0 ) and count == 0):
             count += 1
             responce = "250 OK"
             conn.send(responce.encode())
-        elif(command.find("AUTH") == 0 and count == 1):
+        elif((command.find("AUTH") == 0 ) and count == 1):
             count += 1
+            ##########################
+            ##  Request Username    ##
+            ##########################
             response = AuthenticateEncode("334 username:")
             conn.send(responce.encode())
+            ######################
+            ##  Get Username    ##
+            ######################
             username = conn.recv(MAX).decode()
             conn.send(responce.encode())
+            ###########################
+            ##  validate Username    ##
+            ###########################
             if(validate(username)):
+                ##########################
+                ##  Request Password    ##
+                ##########################
                 response = AuthenticateEncode("334 password:")
                 conn.send(responce.encode())
+                ######################
+                ##  get Username    ##
+                ######################
                 password = conn.recv(MAX).decode()
-
+                if(not validate(password)):
+                ##########################
+                ##  Invalid Password    ##
+                ##########################
+                    while(validate(password)):
+                        ##########################
+                        ##  Request Password    ##
+                        ##  and get Password    ##
+                        ##########################
+                        responce = AuthenticateEncode("535 re-enter password:")
+                        conn.send(responce.encode())
+                        password = conn.recv(MAX).decode()
             else:
-        elif(command.find("MAIL FROM") == 0 and count == 2):
+                ##################
+                ##  New User    ##
+                ##################
+                newpass = CreateUser(username)
+                responce = "330 " + AuthenticateEncode(newpass)
+                conn.send(response.encode())
+                command = "NEW USER"
+        elif((command.find("MAIL FROM") == 0 ) and count == 2):
             count += 1
-        elif(command.find("RCPT TO") == 0 and count == 3):
+        elif((command.find("RCPT TO") == 0 ) and count == 3):
             count += 1
-        elif(command.find("DATA") == 0 and count == 4):
+        elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
         elif(command.find("QUIT") == 0):
             conn.close()
+        elif(command.find("NEW USER") == 0):
+            time.sleep(5)
+            count = 0
         else:
             count = 0
     return 0
@@ -155,6 +191,7 @@ def HTTP(uport):
 ######################################
 def CreateUser(user):
     print("Creating new user\n")
+    password = ""
     try:
         userpassfile = open(".user-pass", "a+")
         password = PasswordGenerator()
@@ -165,6 +202,7 @@ def CreateUser(user):
         userpassfile.write("\n")
     except Exception as e:
         print("Error: %" %e)
+    return password
 
 ##############################
 ##  password generator      ##
