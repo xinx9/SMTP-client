@@ -116,20 +116,20 @@ def SMTP(conn,tport):
         command = conn.recv(MAX).decode().upper()
         if((command.find("HELO") == 0 ) and count == 0):
             count += 1
-            responce = "250 OK"
-            conn.send(responce.encode())
+            response = "250 OK"
+            conn.send(response.encode())
         elif((command.find("AUTH") == 0 ) and count == 1):
             count += 1
             ##########################
             ##  Request Username    ##
             ##########################
             response = AuthenticateEncode("334 username:")
-            conn.send(responce.encode())
+            conn.send(response.encode())
             ######################
             ##  Get Username    ##
             ######################
             username = conn.recv(MAX).decode()
-            conn.send(responce.encode())
+            conn.send(response.encode())
             ###########################
             ##  validate Username    ##
             ###########################
@@ -138,7 +138,7 @@ def SMTP(conn,tport):
                 ##  Request Password    ##
                 ##########################
                 response = AuthenticateEncode("334 password:")
-                conn.send(responce.encode())
+                conn.send(response.encode())
                 ######################
                 ##  get Username    ##
                 ######################
@@ -152,28 +152,33 @@ def SMTP(conn,tport):
                         ##  Request Password    ##
                         ##  and get Password    ##
                         ##########################
-                        responce = AuthenticateEncode("535 re-enter password:")
-                        conn.send(responce.encode())
+                        response = AuthenticateEncode("535 re-enter password:")
+                        conn.send(response.encode())
                         password = conn.recv(MAX).decode()
+                response = "235 AUTH OK"
             else:
                 ##################
                 ##  New User    ##
                 ##################
                 newpass = CreateUser(username)
-                responce = "330 " + AuthenticateEncode(newpass)
+                response = "330 " + AuthenticateEncode(newpass)
                 conn.send(response.encode())
-                command = "NEW USER"
+                count = 2501
+        elif(count == 2501):
+            time.sleep(5)
+            count = 0
         elif((command.find("MAIL FROM") == 0 ) and count == 2):
             count += 1
+            email = command[10:len(command)]
+            response = "250 OK"
+            conn.send(response.encode())
         elif((command.find("RCPT TO") == 0 ) and count == 3):
             count += 1
+            response
         elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
         elif(command.find("QUIT") == 0):
             conn.close()
-        elif(command.find("NEW USER") == 0):
-            time.sleep(5)
-            count = 0
         else:
             count = 0
     return 0
