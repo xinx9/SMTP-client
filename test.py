@@ -8,16 +8,22 @@ import base64
 import random
 import string
 import time
-current_directory = os.getcwd()
-final_directory = os.path.join(current_directory, r'db')
-print("created: %s" % final_directory)
-if not os.path.exists(final_directory):
-   os.makedirs(final_directory)
-a = "a"
-newdir = os.path.join(current_directory + "/db/" + a)
+
+
+current_directory = os.path.join(os.getcwd(), r'db')
+try:
+    print("created: %s" % current_directory)
+    if not os.path.exists(current_directory):
+        os.makedirs(current_directory)
+except Exception as e:
+    print("Error: %s", e)
+
+rcpt = "RCPT TO:rabbit@junk.com"
+email = rcpt[8:len(rcpt)]
+username = email.split("@")
+newdir = os.path.join(current_directory + "/" + username[0])
 print("created: %s" %newdir)
 os.makedirs(newdir)
 
-filename = newdir + "/test.txt"
-f = open(filename, "a+")
-f.write("\nwhat it do bruh\n")
+f = open(newdir + "/test.txt", "a+")
+f.write("\nwhat doesn't kill you will make you a killer\n")

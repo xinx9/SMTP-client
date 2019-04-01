@@ -32,6 +32,18 @@ import random
 import string
 import time
 
+######################
+##  File Managment  ##
+######################
+path = os.path.join(os.getcwd(), r'db')
+try:
+    if(not os.path.exists(path)):
+        os.mkdirs(path)
+except Exception as e:
+    print("Error: %" %e)
+    sys.exit(1)
+
+
 MAX = 1024 # 1KB
 ##########################
 ##  Bad Input Response  ##
@@ -58,18 +70,6 @@ print("\nUDP Binding\n")
 UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
 udp.bind(UDP_ServerAddress)
 print("UDP Bound\n")
-
-######################
-##  File Managment  ##
-######################
-CwdPath = os.getcwd()
-path = os.path.join(CwdPath, r'db')
-try:
-    if(not os.path.exists(path)):
-        os.mkdirs(path)
-except Exception as e:
-    print("Error: %" %e)
-    sys.exit(1)
 
 inputs = [tcp,udp]
 outputs = []
@@ -148,10 +148,10 @@ def SMTP(conn,tport):
                 ##  Invalid Password    ##
                 ##########################
                     while(validate(password)):
-                        ##########################
-                        ##  Request Password    ##
-                        ##  and get Password    ##
-                        ##########################
+                        ##############################
+                        ##  Request Valid Password  ##
+                        ##  and validate Password   ##
+                        ##############################
                         response = AuthenticateEncode("535 re-enter password:")
                         conn.send(response.encode())
                         password = conn.recv(MAX).decode()
@@ -170,16 +170,21 @@ def SMTP(conn,tport):
             count = 0
         elif((command.find("MAIL FROM") == 0 ) and count == 2):
             count += 1
+            ##########################
+            ##  Who is sending data ##
+            ##########################
             EmailSend = command[10:len(command)]
             response = "250 OK"
             conn.send(response.encode())
         elif((command.find("RCPT TO") == 0 ) and count == 3):
             count += 1
+            ##########################
+            ##  Who is getting data ##
+            ##########################
             EmailRecv = command[8:len(command)]
             rcpt = EmailRecv.split("@")
             try:
-                CurrentDir = os.getcwd()
-                CurrentDir = os.path.join(CurrentDir + "/db/" + rcpt[0])
+                CurrentDir = os.path.join(path + "/" + rcpt[0])
                 if(not os.path.exists(CurrentDir)):
                     os.makedirs(CurrentDir)
             except Exception as e:
@@ -189,6 +194,7 @@ def SMTP(conn,tport):
         elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
         elif(command.find("QUIT") == 0):
+            respone = "421 GOOD BYE"
             conn.close()
         else:
             count = 0
@@ -209,7 +215,7 @@ def CreateUser(user):
     print("Creating new user\n")
     password = ""
     try:
-        userpassfile = open(".user-pass", "a+")
+        userpassfile = open(path + "/.user-pass", "a+")
         password = PasswordGenerator()
         Euser = AuthenticateEncode(user)
         Epassword = AuthenticateEncode(password)
