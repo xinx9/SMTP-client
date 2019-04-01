@@ -193,9 +193,26 @@ def SMTP(conn,tport):
             conn.send(response.encode())
         elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
+            modfiles = 0
+            dirListing = os.listdir(CurrentDir)
+            currentTime = "Date: {: %A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
+            if(len(dirListing) != 0):
+                for f in dirListing:
+                    mtime = os.path.getmtime(CurrentDir)
+                    if mtime > modfiles:
+                        filename = f
+                    fns = filename.split(".")
+                    EmailFile = strinc(fns[0]) + "." + fns[1]
+            else:
+                EmailFile = "001.email"
+            body = "Subject: "
         elif(command.find("QUIT") == 0):
             respone = "421 GOOD BYE"
+            conn.send(respone.encode())
             conn.close()
+        elif(command.find("HELP") == 0):
+            response = "HELP FILE"
+            conn.send(respone.encode())
         else:
             count = 0
     return 0
@@ -283,3 +300,7 @@ def AuthenticateEncode(Cin):
     Sin = Cin + salt
     Ein = base64.b64encode(Sin)
     return Ein
+
+def strinc(x):
+    x = int(x) + 1
+    return "%03d" %num
