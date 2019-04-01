@@ -156,6 +156,7 @@ def SMTP(conn,tport):
                         conn.send(response.encode())
                         password = conn.recv(MAX).decode()
                 response = "235 AUTH OK"
+                conn.send(response.encode())
             else:
                 ##################
                 ##  New User    ##
@@ -169,12 +170,22 @@ def SMTP(conn,tport):
             count = 0
         elif((command.find("MAIL FROM") == 0 ) and count == 2):
             count += 1
-            email = command[10:len(command)]
+            EmailSend = command[10:len(command)]
             response = "250 OK"
             conn.send(response.encode())
         elif((command.find("RCPT TO") == 0 ) and count == 3):
             count += 1
-            response
+            EmailRecv = command[8:len(command)]
+            rcpt = EmailRecv.split("@")
+            try:
+                CurrentDir = os.getcwd()
+                CurrentDir = os.path.join(CurrentDir + "/db/" + rcpt[0])
+                if(not os.path.exists(CurrentDir)):
+                    os.makedirs(CurrentDir)
+            except Exception as e:
+                print("Error: %" %e)
+            response = "250 OK"
+            conn.send(response.encode())
         elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
         elif(command.find("QUIT") == 0):
