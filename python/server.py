@@ -242,8 +242,6 @@ def HTTP(uport):
     modmessage = message.decode().upper()
     if(modmessage.find("GET") == 0):
         user = modmessage.split("/")[2]
-        count = modmessage.split("COUNT:")
-        count = int(count[1])
         maildir = os.path.join(os.getcwd + "/db/" + user)
         try:
             if(not os.path.exists(maildir)):
