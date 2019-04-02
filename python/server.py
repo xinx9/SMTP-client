@@ -151,7 +151,7 @@ def SMTP(conn,tport):
                         ##  Request Valid Password  ##
                         ##  and validate Password   ##
                         ##############################
-                        response = AuthenticateEncode("535 re-enter password:")
+                        response = AuthenticateEncode("535 reEnter password:")
                         conn.send(response.encode())
                         password = conn.recv(MAX).decode()
                 response = "235 AUTH OK"
