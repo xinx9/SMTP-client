@@ -115,11 +115,10 @@ def SMTP(conn,tport):
     while True:
         command = conn.recv(MAX).decode().upper()
         if((command.find("HELO") == 0 ) and count == 0):
-            count += 1
             response = "250 OK"
             conn.send(response.encode())
-        elif((command.find("AUTH") == 0 ) and count == 1):
             count += 1
+        elif((command.find("AUTH") == 0 ) and count == 1):
             ##########################
             ##  Request Username    ##
             ##########################
@@ -164,20 +163,16 @@ def SMTP(conn,tport):
                 newpass = CreateUser(username)
                 response = "330 " + AuthenticateEncode(newpass)
                 conn.send(response.encode())
-                count = 2501
-        elif(count == 2501):
-            time.sleep(5)
-            count = 0
-        elif((command.find("MAIL FROM") == 0 ) and count == 2):
             count += 1
+        elif((command.find("MAIL FROM") == 0 ) and count == 2):
             ##########################
             ##  Who is sending data ##
             ##########################
             EmailSend = command[10:len(command)]
             response = "250 OK"
             conn.send(response.encode())
-        elif((command.find("RCPT TO") == 0 ) and count == 3):
             count += 1
+        elif((command.find("RCPT TO") == 0 ) and count == 3):
             ##########################
             ##  Who is getting data ##
             ##########################
@@ -191,8 +186,10 @@ def SMTP(conn,tport):
                 print("Error: %s" %e)
             response = "250 OK"
             conn.send(response.encode())
-        elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
+        elif((command.find("DATA") == 0 ) and count == 4):
+            responce = '354 Send message content; End with <CLRF>.<CLRF>'
+            conn.send(responce.encode())
             modfiles = 0
             dirListing = os.listdir(CurrentDir)
             if(len(dirListing) != 0):
@@ -220,12 +217,14 @@ def SMTP(conn,tport):
                 print("Error: %s\n" %e)
             response = "250 OK"
             conn.send(response.encode())
+            count += 1
         elif(command.find("QUIT") == 0):
-            respone = "421 GOOD BYE"
+            respone = "221"
             conn.send(respone.encode())
             conn.close()
+            count = 0
         elif(command.find("HELP") == 0):
-            response = "HELP FILE"
+            response = "251"
             conn.send(respone.encode())
         elif(count > 1):
             count = 2
