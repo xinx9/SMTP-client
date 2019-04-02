@@ -327,7 +327,7 @@ def validate(userData):
     with open(".user-pass") as f:
         udb64 = f.readline()
         while udb64:
-            if(encodedUserData.find(userData) == 0):
+            if(udb64.find(userData) == 0):
                 flag = True
             else:
                 flag = False
