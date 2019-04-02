@@ -40,7 +40,7 @@ try:
     if(not os.path.exists(path)):
         os.mkdirs(path)
 except Exception as e:
-    print("Error: %" %e)
+    print("Error: %s" %e)
     sys.exit(1)
 
 
@@ -85,7 +85,7 @@ while inputs:
                 connection, client_address = s.accept()
                 _thread.start_new_thread(SMTP, (connection,sys.argv[2]))
             except Exception as e:
-                print("Error: %\n" %e)
+                print("Error: %s\n" %e)
                 tcp.close()
                 print("TCP Socket Closed\n")
                 sys.exit(1)
@@ -96,7 +96,7 @@ while inputs:
             try:
                 HTTP(sys.argv[3])
             except Exception as e:
-                print("Error: %\n" %e)
+                print("Error: %s\n" %e)
                 udp.close()
                 print("UDP Socket Closed\n")
                 sys.exit(1)
@@ -188,14 +188,13 @@ def SMTP(conn,tport):
                 if(not os.path.exists(CurrentDir)):
                     os.makedirs(CurrentDir)
             except Exception as e:
-                print("Error: %" %e)
+                print("Error: %s" %e)
             response = "250 OK"
             conn.send(response.encode())
         elif((command.find("DATA") == 0 ) and count == 4):
             count += 1
             modfiles = 0
             dirListing = os.listdir(CurrentDir)
-            currentTime = "Date: {: %A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
             if(len(dirListing) != 0):
                 for f in dirListing:
                     mtime = os.path.getmtime(CurrentDir)
@@ -204,14 +203,33 @@ def SMTP(conn,tport):
                     fns = filename.split(".")
                     EmailFile = strinc(fns[0]) + "." + fns[1]
             else:
-                EmailFile = "001.email"
+                EmailFile = "001.email"            
+            date = "Date: {: %A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
             body = "Subject: "
+            data = conn.recv(MAX).decode()
+            body = data
+            filepath = os.path.join(CurrentDir, EmailFile)
+            try:
+                f = open(filepath, "a+")
+                f.write(date + 
+                "\nFrom: " + EmailSend + 
+                "\nTo: " + EmailRecv + 
+                "\nSubject: " + body) 
+                f.close()
+            except Exception as e:
+                print("Error: %s\n" %e)
+            response = "250 OK"
+            conn.send(response.encode())
         elif(command.find("QUIT") == 0):
             respone = "421 GOOD BYE"
             conn.send(respone.encode())
             conn.close()
         elif(command.find("HELP") == 0):
             response = "HELP FILE"
+            conn.send(respone.encode())
+        elif(count > 1):
+            count = 2
+            response = "501"
             conn.send(respone.encode())
         else:
             count = 0
@@ -240,7 +258,7 @@ def CreateUser(user):
         userpassfile.write(userData)
         userpassfile.write("\n")
     except Exception as e:
-        print("Error: %" %e)
+        print("Error: %s" %e)
     return password
 
 ##############################
@@ -262,7 +280,7 @@ def PasswordGenerator():
 ##  Epassword = base64 encoded password     ##
 ##  userData = Euser:Epassword              ##
 ##############################################
-def validate(user, password):
+""" def validate(user, password):
     flag = False
     Euser = AuthenticateEncode(user)
     Epassword = AuthenticateEncode(password)
@@ -276,7 +294,7 @@ def validate(user, password):
                 flag = False
     f.close()
     return flag
-    
+     """
 def validate(userData):
     flag = False
     with open(".user-pass", "r+") as f:
