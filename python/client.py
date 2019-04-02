@@ -44,19 +44,23 @@ if(sendOrRecieve.find('SEND') == 0):
     clientSocket.connect(TCP_ServerAddr)
 elif(sendOrRecieve.find('RECIEVE') == 0):
     clientSocket = socket(AF_INET, SOCK_DGRAM)
-    lines = []
-    while True:
-        line = input()
-        if line:
-            lines.append(line)
-        else:
-            break
-    message = '\n'.join(lines)
-    print(message)
-    clientSocket.sendto(message.encode(),UDP_ServerAddr)
-    modifiedMessage = clientSocket.recvfrom(MAX)
-    print(modifiedMessage.decode())
-    sys.exit()
+    init = "200 Ready"
+    clientSocket.sendto(init.encode(), UDP_ServerAddr)
+    data = clientSocket.recvfrom(MAX)
+    if(data.find("334"))
+        lines = []
+        while True:
+            line = input()
+            if line:
+                lines.append(line)
+            else:
+                break
+        message = '\n'.join(lines)
+        print(message)
+        clientSocket.sendto(message.encode(),UDP_ServerAddr)
+        modifiedMessage = clientSocket.recvfrom(MAX)
+        print(modifiedMessage.decode())
+        sys.exit()
 else:
     print('invalid selection')
 

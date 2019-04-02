@@ -44,7 +44,7 @@ except Exception as e:
     sys.exit(1)
 
 
-MAX = 1024 # 1KB
+MAX = 2048 # 2KB
 ##########################
 ##  Bad Input Response  ##
 ##########################
@@ -122,13 +122,12 @@ def SMTP(conn,tport):
             ##########################
             ##  Request Username    ##
             ##########################
-            response = AuthenticateEncode("334 username:")
+            response = "334 username:"
             conn.send(response.encode())
             ######################
             ##  Get Username    ##
             ######################
             username = conn.recv(MAX).decode()
-            conn.send(response.encode())
             ###########################
             ##  validate Username    ##
             ###########################
@@ -136,7 +135,7 @@ def SMTP(conn,tport):
                 ##########################
                 ##  Request Password    ##
                 ##########################
-                response = AuthenticateEncode("334 password:")
+                response = "334 password:"
                 conn.send(response.encode())
                 ######################
                 ##  get Username    ##
@@ -146,12 +145,12 @@ def SMTP(conn,tport):
                 ##########################
                 ##  Invalid Password    ##
                 ##########################
-                    while(validate(password)):
+                    while(not validate(password)):
                         ##############################
                         ##  Request Valid Password  ##
                         ##  and validate Password   ##
                         ##############################
-                        response = AuthenticateEncode("535 reEnter password:")
+                        response = "535 reEnter password:"
                         conn.send(response.encode())
                         password = conn.recv(MAX).decode()
                 response = "235 AUTH OK"
@@ -223,9 +222,6 @@ def SMTP(conn,tport):
             conn.send(respone.encode())
             conn.close()
             count = 0
-        elif(command.find("HELP") == 0):
-            response = "251"
-            conn.send(respone.encode())
         elif(count > 1):
             count = 2
             response = "501"
@@ -238,20 +234,35 @@ def SMTP(conn,tport):
 ##  HTTP Email read Service  ##
 ###############################
 def HTTP(uport):
-    message, caddr = udp.redvfrom(MAX)
-    modmessage = message.decode().upper()
-    if(modmessage.find("GET") == 0):
-        user = modmessage.split("/")[2]
-        maildir = os.path.join(os.getcwd + "/db/" + user)
+    cready, caddr = udp.recvfrom(MAX)
+    if(cready.find("200 Ready")):
+        response = "200"
+        udp.sendto(responce.encode(),caddr)
+        user, caddr = udp.recvfrom(MAX)
+        udp.sendto(responce.encode(),caddr)
+        password, caddr = udp.recvfrom(MAX)
+        userData = user + ":" + password
+    if(not validate(userData))
+        responce = "535"
+        udp.sendto(responce.encode(),caddr)
+        while(not validate(userData)):
+            response = "200"
+            udp.sendto(responce.encode(),caddr)
+            user, caddr = udp.recvfrom(MAX)
+            udp.sendto(responce.encode(),caddr)
+            password, caddr = udp.recvfrom(MAX)
+            userData = user + ":" + password
+    else:
+        response = "334"
+        udp.sendto(responce.encode(),caddr)
+        maildir = os.path.join(os.getcwd() + "/db/" + user)
         try:
             if(not os.path.exists(maildir)):
                 response = "404: directory not found"
                 udp.sendto(response.encode(), caddr)
             else:
                 files = os.listdir(maildir)
-                files = sorted(files)
-                files = reversed(files)
-                files = list(files)
+                files = sorted(files, reverse = True)
                 curdir = os.getcwd()
                 i = 0
                 while i < count and count < len(files):
@@ -259,7 +270,7 @@ def HTTP(uport):
                     mail = files[i]
                     filepath = os.path.join(maildir,mail)
                     f = open(filepath,"r")
-                    mesage = f.read()
+                    message = f.read()
                     f.close()
                     mail = mail.split(".")[0]
                     mail = mail + ".txt"
@@ -270,11 +281,8 @@ def HTTP(uport):
                     i+=1
         except Exception as e:
             print("Error: %s" %e)
-    else:
-        print("invalid GET request")
-        modmessage = "Check current directory for text files"
+        modmessage = "New file Received. Check contents in your directory."
         udp.sendto(modmessage.encode(),caddr)
-    return 0
 
 ######################################
 ##  Create user on first time login ##
@@ -311,35 +319,19 @@ def PasswordGenerator():
 ##  Validate user                           ##
 ##  compares userData to encodedUserData    ##
 ##  sets flag to True if successful compare ##
-##  Euser = base64 encoded username         ##
-##  Epassword = base64 encoded password     ##
 ##  userData = Euser:Epassword              ##
+##  udb64 = User Data Base64                ##
 ##############################################
-""" def validate(user, password):
-    flag = False
-    Euser = AuthenticateEncode(user)
-    Epassword = AuthenticateEncode(password)
-    userData = Euser + ":" + Epassword
-    with open(".user-pass", "r+") as f:
-        for b64d in f:
-            encodedUserData = b64d.readline()
-            if(userData == encodedUserData):
-                flag = True
-            else:
-                flag = False
-    f.close()
-    return flag
-     """
 def validate(userData):
     flag = False
-    with open(".user-pass", "r+") as f:
-        for b64d in f:
-            encodedUserData = b64d.readline()
+    with open(".user-pass") as f:
+        udb64 = f.readline()
+        while udb64:
             if(encodedUserData.find(userData) == 0):
                 flag = True
             else:
                 flag = False
-    f.close()
+        udb64 = f.readline()
     return flag
     
 ######################################################
