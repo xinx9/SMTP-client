@@ -27,18 +27,15 @@ import datetime
 import _thread
 
 MAX = 1024
-TCP_ClientAddress = (sys.argv[1], int(sys.argv[2]))
-#UPORT = sys.argv[3]
 if(len(sys.argv) != 3):
-    print("\n> python3 server.py <IP ADDRESS> <TCP PORT> <UDP PORT>")
+    print("\n> python3 server.py <HOST NAME> <PORT NUMBER>")
     sys.exit(1)
 
+
+TCP_ClientAddress = (sys.argv[1], int(sys.argv[2]))
 tcp = socket(AF_INET, SOCK_STREAM)
 tcp.connect(TCP_ClientAddress)
-while True:
-    msg = input()
-    tcp.send(msg.encode())
-tcp.close()
+
 
 ######################################################
 ##  Authenticate clear text input with base64       ##

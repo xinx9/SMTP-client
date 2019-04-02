@@ -239,6 +239,44 @@ def SMTP(conn,tport):
 ##  HTTP Email read Service  ##
 ###############################
 def HTTP(uport):
+    message, caddr = udp.redvfrom(MAX)
+    modmessage = message.decode().upper()
+    if(modmessage.find("GET") == 0):
+        user = modmessage.split("/")[2]
+        count = modmessage.split("COUNT:")
+        count = int(count[1])
+        maildir = os.path.join(os.getcwd + "/db/" + user)
+        try:
+            if(not os.path.exists(maildir)):
+                response = "404: directory not found"
+                udp.sendto(response.encode(), caddr)
+            else:
+                files = os.listdir(maildir)
+                files = sorted(files)
+                files = reversed(files)
+                files = list(files)
+                curdir = os.getcwd()
+                i = 0
+                while i < count and count < len(files):
+                    message = ""
+                    mail = files[i]
+                    filepath = os.path.join(maildir,mail)
+                    f = open(filepath,"r")
+                    mesage = f.read()
+                    f.close()
+                    mail = mail.split(".")[0]
+                    mail = mail + ".txt"
+                    storepath = os.path.join(curdir,mail)
+                    m = open(storepath, "a+")
+                    m.write(message)
+                    m.close()
+                    i+=1
+        except Exception as e:
+            print("Error: %s" %e)
+    else:
+        print("invalid GET request")
+        modmessage = "Check current directory for text files"
+        udp.sendto(modmessage.encode(),caddr)
     return 0
 
 ######################################
