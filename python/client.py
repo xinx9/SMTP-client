@@ -48,17 +48,18 @@ if(sendOrRecieve.find('SEND') == 0):
     while 1:
         cmsg = input()
         clientSocket.send(cmsg.encode())
-        smsg = clientSocket.re
-        userData = ""cv(MAX).decode()
+        smsg = clientSocket.recv(MAX).decode()
         if(smsg.find("221 Bye") == 0):
             print(smsg)
             sys.exit()
-        elif(smsg.find("334 username") == 0):
+        elif(smsg.find("334 username:") == 0):
             print(smsg)
             user = input()
             Euser = AuthenticateEncode(user)
             clientSocket.send(Euser.decode())
-        elif(smsg.find("334 password") == 0 or smsg.find("535 reEnter password") == 0):
+        elif(smsg.find("330") == 0):
+            newpass = smsg.split()[1] 
+        elif(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
             print(smsg)
             password = input()
             Epassword = AuthenticateEncode(password)
@@ -101,26 +102,24 @@ elif(sendOrRecieve.find('RECIEVE') == 0):
 else:
     print('invalid selection')
 
-######################################################
-##  Authenticate clear text input with base64       ##
-##  Cin = clear text input                          ##
-##  Sin = salted input                              ##
-##  Ein = encoded input                             ##
-######################################################
+##############################################
+##  Encode/Decode text input with base64    ##
+##  Cin = clear text input                  ## 
+##  Sin = salted input                      ##   
+##  Ein = encoded input                     ##  
+##  Bin = binary input                      ##   
+##############################################
 def AuthenticateEncode(Cin):
     salt = "447"
     Sin = Cin + salt
-    Ein = base64.b64encode(Sin)
+    Bin = Sin.decode("utf-8")
+    Ein = base64.b64encode(Bin)
     return Ein
 
-######################################################
-##  Authenticate encoded input with base64          ##
-##  Cin = clear text input                          ##
-##  Sin = salted input                              ##
-##  Ein = encoded input                             ##
-######################################################
 def AuthenticateDecode(Ein):
     salt = "447"
+    Ein = Ein[2:-1]
     Sin = base64.b64decode(Ein)
-    Cin = string.replace(salt, "")
+    Sin = Sin.decode("utf-8")
+    Cin = Sin[:len(Sin)-3]
     return Cin

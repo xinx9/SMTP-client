@@ -115,7 +115,7 @@ def SMTP(conn,tport):
                         ##  Request Valid Password  ##
                         ##  and validate Password   ##
                         ##############################
-                        response = "535 reEnter password:"
+                        response = "535 re-enter password:"
                         conn.send(response.encode())
                         password = conn.recv(MAX).decode()
                 response = "235 AUTH OK"
@@ -299,17 +299,27 @@ def validate(userData):
         udb64 = f.readline()
     return flag
     
-######################################################
-##  Authenticate clear text input with base64       ##
-##  Cin = clear text input                          ##
-##  Sin = salted input                              ##
-##  Ein = encoded input                             ##
-######################################################
+##############################################
+##  Encode/Decode text input with base64    ##
+##  Cin = clear text input                  ## 
+##  Sin = salted input                      ##   
+##  Ein = encoded input                     ##  
+##  Bin = binary input                      ##   
+##############################################
 def AuthenticateEncode(Cin):
     salt = "447"
     Sin = Cin + salt
-    Ein = base64.b64encode(Sin)
+    Bin = Sin.decode("utf-8")
+    Ein = base64.b64encode(Bin)
     return Ein
+
+def AuthenticateDecode(Ein):
+    salt = "447"
+    Ein = Ein[2:-1]
+    Sin = base64.b64decode(Ein)
+    Sin = Sin.decode("utf-8")
+    Cin = Sin[:len(Sin)-3]
+    return Cin
 
 def strinc(x):
     x = int(x) + 1
