@@ -265,16 +265,15 @@ def HTTP(uport):
                 files = sorted(files, reverse = True)
                 curdir = os.getcwd()
                 i = 0
-                while i < count and count < len(files):
-                    message = ""
+                while i < len(files):
                     mail = files[i]
-                    filepath = os.path.join(maildir,mail)
+                    filepath = os.path.join(maildir + "/" + mail)
                     f = open(filepath,"r")
                     message = f.read()
                     f.close()
                     mail = mail.split(".")[0]
                     mail = mail + ".txt"
-                    storepath = os.path.join(curdir,mail)
+                    storepath = os.path.join(curdir + "/" + mail)
                     m = open(storepath, "a+")
                     m.write(message)
                     m.close()
