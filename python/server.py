@@ -41,9 +41,8 @@ path = os.path.join(os.getcwd(), r'db')
 try:
     if(not os.path.exists(path)):
         os.makedirs(path)
-        secretfile = path + "/.user-pass"
-        f = open(secretfile, "w+")
-        f.close()
+    f = open((os.path.join(os.getcwd() + "/db/.user-pass")))
+    f.close()
 except Exception as e:
     print("Error: %s" %e)
     sys.exit(1)
@@ -115,7 +114,7 @@ def validate(userData):
     filepath = os.path.join(os.getcwd() + "/db/.user-pass")
     print("---" + userData)
     if(os.path.exists(filepath)):
-        f = open(".user-pass", "r")
+        f = open("/db/.user-pass", "r")
         udb64 = f.readline()
         while udb64:
             if(udb64.find(userData) == 0):

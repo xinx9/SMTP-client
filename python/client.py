@@ -78,14 +78,15 @@ if(sendOrRecieve.find("SEND") == 0):
         elif(smsg.find("334 username:") == 0):
             user = input(smsg)
             Euser = AuthenticateEncode(user)
-            clientSocket.send(Euser.encode())
-        elif(smsg.find("330") == 0):
-            print("your password is: " + AuthenticateDecode(smsg.split()[1]))
-            time.sleep(5)
-        elif(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
-            password = input(smsg)
-            Epassword = AuthenticateEncode(password)
-            clientSocket.send(Epassword.encode())
+            clientSocket.send(str(Euser).encode())
+            smsg = clientSocket.recv(MAX).decode()
+            if(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
+                password = input(smsg)
+                Epassword = AuthenticateEncode(password)
+                clientSocket.send(Epassword.encode())
+            elif(smsg.find("330") == 0):
+                print("your password is: " + AuthenticateDecode(smsg.split()[1]))
+                time.sleep(5)
         elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
             print(smsg)
             datamsg = []
@@ -156,4 +157,3 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
 else:
     print("invalid selection")
     sys.exit()
-
