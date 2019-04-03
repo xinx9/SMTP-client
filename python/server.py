@@ -79,11 +79,11 @@ def SMTP(conn,tport):
     count = 0
     while True:
         command = conn.recv(MAX).decode().upper()
-        if((command.find("HELO") == 0 ) and count == 0):
+        if((command == "HELO") and count == 0):
             response = "250 OK"
             conn.send(response.encode())
             count += 1
-        elif((command.find("AUTH") == 0 ) and count == 1):
+        elif((command == "AUTH") and count == 1):
             ##########################
             ##  Request Username    ##
             ##########################
@@ -120,6 +120,7 @@ def SMTP(conn,tport):
                         password = conn.recv(MAX).decode()
                 response = "235 AUTH OK"
                 conn.send(response.encode())
+                count += 1
             else:
                 ##################
                 ##  New User    ##
@@ -127,7 +128,7 @@ def SMTP(conn,tport):
                 newpass = CreateUser(username)
                 response = "330 " + AuthenticateEncode(newpass)
                 conn.send(response.encode())
-            count += 1
+                count = 0
         elif((command.find("MAIL FROM") == 0 ) and count == 2):
             ##########################
             ##  Who is sending data ##
@@ -141,9 +142,9 @@ def SMTP(conn,tport):
             ##  Who is getting data ##
             ##########################
             EmailRecv = command[8:len(command)]
-            rcpt = EmailRecv.split("@")
+            touser = EmailRecv.split("@")
             try:
-                CurrentDir = os.path.join(path + "/" + rcpt[0])
+                CurrentDir = os.path.join(path + "/" + touser[0])
                 if(not os.path.exists(CurrentDir)):
                     os.makedirs(CurrentDir)
             except Exception as e:
@@ -151,9 +152,9 @@ def SMTP(conn,tport):
             response = "250 OK"
             conn.send(response.encode())
             count += 1
-        elif((command.find("DATA") == 0 ) and count == 4):
-            responce = '354 Send message content; End with <CLRF>.<CLRF>'
-            conn.send(responce.encode())
+        elif((command == "DATA") and count == 4):
+            response = '354 Send message content; End with <CLRF>.<CLRF>'
+            conn.send(response.encode())
             modfiles = 0
             dirListing = os.listdir(CurrentDir)
             if(len(dirListing) != 0):
@@ -165,8 +166,7 @@ def SMTP(conn,tport):
                     EmailFile = strinc(fns[0]) + "." + fns[1]
             else:
                 EmailFile = "001.email"            
-            date = "Date: {: %A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
-            body = "Subject: "
+            date = "Date: {:%A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
             data = conn.recv(MAX).decode()
             body = data
             filepath = os.path.join(CurrentDir, EmailFile)
@@ -182,15 +182,15 @@ def SMTP(conn,tport):
             response = "250 OK"
             conn.send(response.encode())
             count += 1
-        elif(command.find("QUIT") == 0):
+        elif(command == "QUIT"):
             count = 0
-            respone = "221"
-            conn.send(respone.encode())
+            response = "221"
+            conn.send(response.encode())
             conn.close()
         elif(count > 1):
             count = 2
-            response = "501"
-            conn.send(respone.encode())
+            response = "501 Invalid Command"
+            conn.send(response.encode())
         else:
             count = 0
     return 0
@@ -202,30 +202,34 @@ def HTTP(uport):
     cready, caddr = udp.recvfrom(MAX)
     if(cready.find("200 Ready")):
         response = "200"
-        udp.sendto(responce.encode(),caddr)
+        udp.sendto(response.encode(),caddr)
         user, caddr = udp.recvfrom(MAX)
-        udp.sendto(responce.encode(),caddr)
+        user = user.decode()
         password, caddr = udp.recvfrom(MAX)
+        password = password.decode()
         userData = user + ":" + password
-    if(not validate(userData))
-        responce = "535"
-        udp.sendto(responce.encode(),caddr)
-        while(not validate(userData)):
-            response = "200"
-            udp.sendto(responce.encode(),caddr)
-            user, caddr = udp.recvfrom(MAX)
-            udp.sendto(responce.encode(),caddr)
-            password, caddr = udp.recvfrom(MAX)
-            userData = user + ":" + password
+        if(validate(userData)):
+            response = "250 OK"
+            udp.sendto(response.encode,caddr)
+        elif(not validate(userData)):
+            while(not validate(userData)):
+                response = "535"
+                udp.sendto(response.encode(),caddr)
+                user, caddr = udp.recvfrom(MAX)
+                user = user.decode()
+                password, caddr = udp.recvfrom(MAX)
+                password = password.decode()
+                userData = user + ":" + password
+            response = "250 OK"
+            udp.sendto(response.encode,caddr)
     else:
-        response = "334"
-        udp.sendto(responce.encode(),caddr)
         maildir = os.path.join(os.getcwd() + "/db/" + user)
         try:
             if(not os.path.exists(maildir)):
                 response = "404: directory not found"
                 udp.sendto(response.encode(), caddr)
             else:
+                response = "250 Download"
                 files = os.listdir(maildir)
                 files = sorted(files, reverse = True)
                 curdir = os.getcwd()
