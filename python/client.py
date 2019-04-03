@@ -26,21 +26,41 @@ import os
 import datetime
 import time
 import _thread
-
+import base64
 MAX = 1024
 if(len(sys.argv) != 3):
     print("\n> python3 server.py <HOST NAME> <PORT NUMBER>")
     sys.exit(1)
 
+##############################################
+##  Encode/Decode text input with base64    ##
+##  Cin = clear text input                  ## 
+##  Sin = salted input                      ##   
+##  Ein = encoded input                     ##  
+##  Bin = binary input                      ##   
+##############################################
+def AuthenticateEncode(Cin):
+    salt = "447"
+    Sin = Cin + salt
+    Bin = Sin.encode("utf-8")
+    Ein = base64.b64encode(Bin)
+    return Ein
 
-TCP_ServerAddr, UDP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
+def AuthenticateDecode(Ein):
+    salt = "447"
+    Ein = Ein[2:-1]
+    Sin = base64.b64decode(Ein)
+    Sin = Sin.decode("utf-8")
+    Cin = Sin[:len(Sin)-3]
+    return Cin
 
 ######################################
 ##  Initialize Server Connection    ##
 ######################################
 print("Would you like to send or recieve?")
-sendOrRecieve = input().upper()
+sendOrRecieve = input(">").upper()
 if(sendOrRecieve.find("SEND") == 0):
+    TCP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect(TCP_ServerAddr)
     ##################
@@ -58,14 +78,14 @@ if(sendOrRecieve.find("SEND") == 0):
         elif(smsg.find("334 username:") == 0):
             user = input(smsg)
             Euser = AuthenticateEncode(user)
-            clientSocket.send(Euser.decode())
+            clientSocket.send(Euser.encode())
         elif(smsg.find("330") == 0):
             print("your password is: " + AuthenticateDecode(smsg.split()[1]))
             time.sleep(5)
         elif(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
             password = input(smsg)
             Epassword = AuthenticateEncode(password)
-            clientSocket.send(Epassword)
+            clientSocket.send(Epassword.encode())
         elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
             print(smsg)
             datamsg = []
@@ -85,6 +105,7 @@ if(sendOrRecieve.find("SEND") == 0):
     sys.exit()
 #########################################
 elif(sendOrRecieve.find("RECIEVE") == 0):
+    UDP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     init = "200 Ready"
     clientSocket.sendto(init.encode(), UDP_ServerAddr)
@@ -98,7 +119,7 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
         Epassword = AuthenticateEncode(password)
         clientSocket.sendto(Epassword.encode(), UDP_ServerAddr)
         valid = clientSocket.recvfrom(MAX)
-        if(valid.decode() == "250 OK")
+        if(valid.decode() == "250 OK"):
             Print(valid.decode())
         elif(valid.decode() == "535"):
             while(valid.decode() != "250 OK"):
@@ -113,7 +134,7 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
             print(valid.decode())
     data = clientSocket.recvfrom(MAX)
     data = data.decode()
-    if(data == "250 Download")
+    if(data == "250 Download"):
         message = "GET /db/" + username + "/ HTTP/1.1\nHost: " + sys.argv[1] + "\n"
         print(message)
         clientSocket.sendto(message.encode(),UDP_ServerAddr)
@@ -124,7 +145,7 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
                 filename = clientSocket.recvfrom(MAX)
                 filename.decode()
                 f = open(filename, "a+")
-            elif(data == "250 Msg")
+            elif(data == "250 Msg"):
                 servermessage = clientSocket.recvfrom(MAX)
                 servermessage.decode()
                 f.write(servermessage)
@@ -136,24 +157,3 @@ else:
     print("invalid selection")
     sys.exit()
 
-##############################################
-##  Encode/Decode text input with base64    ##
-##  Cin = clear text input                  ## 
-##  Sin = salted input                      ##   
-##  Ein = encoded input                     ##  
-##  Bin = binary input                      ##   
-##############################################
-def AuthenticateEncode(Cin):
-    salt = "447"
-    Sin = Cin + salt
-    Bin = Sin.decode("utf-8")
-    Ein = base64.b64encode(Bin)
-    return Ein
-
-def AuthenticateDecode(Ein):
-    salt = "447"
-    Ein = Ein[2:-1]
-    Sin = base64.b64decode(Ein)
-    Sin = Sin.decode("utf-8")
-    Cin = Sin[:len(Sin)-3]
-    return Cin

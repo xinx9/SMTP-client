@@ -40,7 +40,10 @@ MAX = 2048 # 2KB
 path = os.path.join(os.getcwd(), r'db')
 try:
     if(not os.path.exists(path)):
-        os.mkdirs(path)
+        os.makedirs(path)
+        secretfile = path + "/.user-pass"
+        f = open(secretfile, "w+")
+        f.close()
 except Exception as e:
     print("Error: %s" %e)
     sys.exit(1)
@@ -48,7 +51,7 @@ except Exception as e:
 ##########################
 ##  Bad Input Response  ##
 ##########################
-if(len(sys.argv) != 3):
+if(len(sys.argv) != 4):
     print("\nUsage: python3 server.py <IP ADDRESS> <TCP PORT> <UDP PORT>")
     sys.exit(1)
 
@@ -56,26 +59,104 @@ if(len(sys.argv) != 3):
 ##  TCP socket, bind, and listen  ##
 ####################################
 tcp = socket(AF_INET, SOCK_STREAM)
-print("\nTCP Binding\n")
 TCP_ServerAddress = (sys.argv[1], int(sys.argv[2]))
 tcp.bind(TCP_ServerAddress)
-print("TCP Bound\n")
 tcp.listen(5)
-
+print("TCP working")
 ##############################
 ##  UDP socket, and bind    ##
 ##############################
 udp = socket(AF_INET, SOCK_DGRAM)
-print("\nUDP Binding\n")
 UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
 udp.bind(UDP_ServerAddress)
-print("UDP Bound\n")
+print("UDP working")
 
+
+##############################
+##  password generator      ##
+##  create a 5 character    ## 
+##  alphanumeric password   ##
+##############################
+def PasswordGenerator():
+    password = ""
+    for x in range(5):
+        password += ''.join(random.choice(string.ascii_letters + string.digits))
+    return password
+
+######################################
+##  Create user on first time login ##
+##  call Generate Random Password   ##
+##  write user to .user_pass file   ##
+######################################
+def CreateUser(user):
+    print("Creating new user\n")
+    password = ""
+    try:
+        filepath = os.getcwd() + "/db/.user-pass"
+        userpassfile = open(filepath, "a")
+        password = PasswordGenerator()
+        Euser = AuthenticateEncode(user)
+        Epassword = AuthenticateEncode(password)
+        userData = Euser + ":" + Epassword
+        userpassfile.write(userData + "\n")
+    except Exception as e:
+        print("Error: %s" %e)
+    return password
+
+##############################################
+##  Validate user                           ##
+##  compares userData to encodedUserData    ##
+##  sets flag to True if successful compare ##
+##  userData = Euser:Epassword              ##
+##  udb64 = User Data Base64                ##
+##############################################
+def validate(userData):
+    flag = False
+    filepath = os.path.join(os.getcwd() + "/db/.user-pass")
+    print("---" + userData)
+    if(os.path.exists(filepath)):
+        f = open(".user-pass", "r")
+        udb64 = f.readline()
+        while udb64:
+            if(udb64.find(userData) == 0):
+                flag = True
+            else:
+                flag = False
+            udb64 = f.readline()
+        f.close()
+    return flag
+    
+##############################################
+##  Encode/Decode text input with base64    ##
+##  Cin = clear text input                  ## 
+##  Sin = salted input                      ##   
+##  Ein = encoded input                     ##  
+##  Bin = binary input                      ##   
+##############################################
+def AuthenticateEncode(Cin):
+    salt = "447"
+    Sin = Cin + salt
+    Bin = Sin.encode("utf-8")
+    Ein = base64.b64encode(Bin)
+    return Ein
+
+def AuthenticateDecode(Ein):
+    salt = "447"
+    Ein = Ein[2:-1]
+    Sin = base64.b64decode(Ein)
+    Sin = Sin.decode("utf-8")
+    Cin = Sin[:len(Sin)-3]
+    return Cin
+
+def strinc(x):
+    x = int(x) + 1
+    return "%03d" %num
 
 ################################
 ##  SMTP Email write Service  ##
 ################################
 def SMTP(conn,tport):
+    print("kill me")
     count = 0
     while True:
         command = conn.recv(MAX).decode().upper()
@@ -87,12 +168,13 @@ def SMTP(conn,tport):
             ##########################
             ##  Request Username    ##
             ##########################
-            response = "334 username:"
+            response = "334 username: "
             conn.send(response.encode())
             ######################
             ##  Get Username    ##
             ######################
             username = conn.recv(MAX).decode()
+            print(username)
             ###########################
             ##  validate Username    ##
             ###########################
@@ -100,7 +182,7 @@ def SMTP(conn,tport):
                 ##########################
                 ##  Request Password    ##
                 ##########################
-                response = "334 password:"
+                response = "334 password: "
                 conn.send(response.encode())
                 ######################
                 ##  get Username    ##
@@ -192,6 +274,7 @@ def SMTP(conn,tport):
             response = "501 Invalid Command"
             conn.send(response.encode())
         else:
+            response = "500 Unknown Command"
             count = 0
     return 0
 
@@ -262,84 +345,9 @@ def HTTP(uport):
         modmessage = "New file Received. Check contents in your directory."
         udp.sendto(modmessage.encode(),caddr)
 
-######################################
-##  Create user on first time login ##
-##  call Generate Random Password   ##
-##  write user to .user_pass file   ##
-######################################
-def CreateUser(user):
-    print("Creating new user\n")
-    password = ""
-    try:
-        userpassfile = open(os.getcwd() + "/db/.user-pass", "a+")
-        password = PasswordGenerator()
-        Euser = AuthenticateEncode(user)
-        Epassword = AuthenticateEncode(password)
-        userData = Euser + ":" + Epassword
-        userpassfile.write(userData)
-        userpassfile.write("\n")
-    except Exception as e:
-        print("Error: %s" %e)
-    return password
-
-##############################
-##  password generator      ##
-##  create a 5 character    ## 
-##  alphanumeric password   ##
-##############################
-def PasswordGenerator():
-    password = ""
-    for x in range(5):
-        password += ''.join(random.choice(string.ascii_letters + string.digits))
-    return password
-
-##############################################
-##  Validate user                           ##
-##  compares userData to encodedUserData    ##
-##  sets flag to True if successful compare ##
-##  userData = Euser:Epassword              ##
-##  udb64 = User Data Base64                ##
-##############################################
-def validate(userData):
-    flag = False
-    with open(".user-pass") as f:
-        udb64 = f.readline()
-        while udb64:
-            if(udb64.find(userData) == 0):
-                flag = True
-            else:
-                flag = False
-        udb64 = f.readline()
-    return flag
-    
-##############################################
-##  Encode/Decode text input with base64    ##
-##  Cin = clear text input                  ## 
-##  Sin = salted input                      ##   
-##  Ein = encoded input                     ##  
-##  Bin = binary input                      ##   
-##############################################
-def AuthenticateEncode(Cin):
-    salt = "447"
-    Sin = Cin + salt
-    Bin = Sin.decode("utf-8")
-    Ein = base64.b64encode(Bin)
-    return Ein
-
-def AuthenticateDecode(Ein):
-    salt = "447"
-    Ein = Ein[2:-1]
-    Sin = base64.b64decode(Ein)
-    Sin = Sin.decode("utf-8")
-    Cin = Sin[:len(Sin)-3]
-    return Cin
-
-def strinc(x):
-    x = int(x) + 1
-    return "%03d" %num
-
-while inputs:
-    read = select([tcp,udp], [], [])
+input = [tcp,udp]
+while True:
+    read,outputready,exceptready= select(input, [], [])
     for s in read:
         ####################################
         ##  MultiThreaded SMTP over TCP   ##
