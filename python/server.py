@@ -223,7 +223,10 @@ def HTTP(uport):
             response = "250 OK"
             udp.sendto(response.encode,caddr)
     else:
-        maildir = os.path.join(os.getcwd() + "/db/" + user)
+        getrequest, caddr = udp.recvfrom(MAX)
+        getrequest = getrequest.decode()
+        userpath = getrequest.split()[1]
+        maildir = os.path.join(os.getcwd() + userpath)
         try:
             if(not os.path.exists(maildir)):
                 response = "404: directory not found"
@@ -240,14 +243,20 @@ def HTTP(uport):
                     mail = mail.split(".")[0]
                     mail = mail + ".txt"
                     f = open(filepath,"r")
-                    message = f.read()
+                    message = f.read(MAX)
+                    response = "250 File"
                     upd.sendto(mail.encode(), caddr)
+                    udp.sendto(response.encode(), caddr)
                     while(message):
-                        if(udp.sendto(message, caddr)):
-                            message = f.read()
+                        response = "250 Msg"
+                        message = getrequest + "\n" + message
+                        if(udp.sendto(message.encode(), caddr)):
+                            message = f.read(MAX)
                             time.sleep(0.02)
                     f.close()
                     i+=1
+                response = "250 Downloaded"
+                udp.sendto(response.encode(), caddr)
         except Exception as e:
             print("Error: %s" %e)
         modmessage = "New file Received. Check contents in your directory."

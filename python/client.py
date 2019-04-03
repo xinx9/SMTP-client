@@ -46,25 +46,24 @@ if(sendOrRecieve.find("SEND") == 0):
     ##################
     #TCP interaction
     ##################
-    while 1:
+    while True:
         #--------------------------------------------#
         cmsg = input(">")
         clientSocket.send(cmsg.encode())
         smsg = clientSocket.recv(MAX).decode()
         if(smsg.find("221 Bye") == 0):
             print(smsg)
+            clientSocket.close()
             sys.exit()
         elif(smsg.find("334 username:") == 0):
-            print(smsg)
-            user = input()
+            user = input(smsg)
             Euser = AuthenticateEncode(user)
             clientSocket.send(Euser.decode())
         elif(smsg.find("330") == 0):
             print("your password is: " + AuthenticateDecode(smsg.split()[1]))
             time.sleep(5)
         elif(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
-            print(smsg)
-            password = input()
+            password = input(smsg)
             Epassword = AuthenticateEncode(password)
             clientSocket.send(Epassword)
         elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
@@ -115,20 +114,24 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
     data = clientSocket.recvfrom(MAX)
     data = data.decode()
     if(data == "250 Download")
-        lines = []
-        while True:
-            line = input()
-            if line:
-                lines.append(line)
-            else:
-                break
-        message = "\n".join(lines)
+        message = "GET /db/" + username + "/ HTTP/1.1\nHost: " + sys.argv[1] + "\n"
         print(message)
         clientSocket.sendto(message.encode(),UDP_ServerAddr)
-        modifiedMessage = clientSocket.recvfrom(MAX)
-        print(modifiedMessage.decode())
+        while(not data == "250 Downloaded"):
+            data = clientSocket.recvfrom(MAX)
+            data = data.decode()
+            if(data == "250 File"):
+                filename = clientSocket.recvfrom(MAX)
+                filename.decode()
+                f = open(filename, "a+")
+            elif(data == "250 Msg")
+                servermessage = clientSocket.recvfrom(MAX)
+                servermessage.decode()
+                f.write(servermessage)
         sys.exit()
-    elif(data == "404: directory not found")
+    elif(data == "404: directory not found"):
+        print(data)
+        sys.exit()
 else:
     print("invalid selection")
     sys.exit()
