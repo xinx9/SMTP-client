@@ -32,6 +32,8 @@ import random
 import string
 import time
 
+MAX = 2048 # 2KB
+
 ######################
 ##  File Managment  ##
 ######################
@@ -43,8 +45,6 @@ except Exception as e:
     print("Error: %s" %e)
     sys.exit(1)
 
-
-MAX = 2048 # 2KB
 ##########################
 ##  Bad Input Response  ##
 ##########################
@@ -70,41 +70,6 @@ print("\nUDP Binding\n")
 UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
 udp.bind(UDP_ServerAddress)
 print("UDP Bound\n")
-
-inputs = [tcp,udp]
-outputs = []
-while inputs:
-    read = select(inputs, outputs, inputs)
-    for s in read:
-        ####################################
-        ##  MultiThreaded SMTP over TCP   ##
-        ####################################
-        if(s == tcp):
-            try:
-                print("TCP Connecting\n")
-                connection, client_address = s.accept()
-                _thread.start_new_thread(SMTP, (connection,sys.argv[2]))
-            except Exception as e:
-                print("Error: %s\n" %e)
-                tcp.close()
-                print("TCP Socket Closed\n")
-                sys.exit(1)
-        ######################
-        ##  HTTP over UDP   ##
-        ######################
-        elif(s == udp):
-            try:
-                HTTP(sys.argv[3])
-            except Exception as e:
-                print("Error: %s\n" %e)
-                udp.close()
-                print("UDP Socket Closed\n")
-                sys.exit(1)
-        else:
-            print("Error: %s is not TCP or UDP\n" % s)
-            tcp.close()
-            udp.close()
-            sys.exit(1)
 
 
 ################################
@@ -218,10 +183,10 @@ def SMTP(conn,tport):
             conn.send(response.encode())
             count += 1
         elif(command.find("QUIT") == 0):
+            count = 0
             respone = "221"
             conn.send(respone.encode())
             conn.close()
-            count = 0
         elif(count > 1):
             count = 2
             response = "501"
@@ -268,15 +233,16 @@ def HTTP(uport):
                 while i < len(files):
                     mail = files[i]
                     filepath = os.path.join(maildir + "/" + mail)
-                    f = open(filepath,"r")
-                    message = f.read()
-                    f.close()
                     mail = mail.split(".")[0]
                     mail = mail + ".txt"
-                    storepath = os.path.join(curdir + "/" + mail)
-                    m = open(storepath, "a+")
-                    m.write(message)
-                    m.close()
+                    f = open(filepath,"r")
+                    message = f.read()
+                    upd.sendto(mail.encode(), caddr)
+                    while(message):
+                        if(udp.sendto(message, caddr)):
+                            message = f.read()
+                            time.sleep(0.02)
+                    f.close()
                     i+=1
         except Exception as e:
             print("Error: %s" %e)
@@ -292,7 +258,7 @@ def CreateUser(user):
     print("Creating new user\n")
     password = ""
     try:
-        userpassfile = open(path + "/.user-pass", "a+")
+        userpassfile = open(os.getcwd() + "/db/.user-pass", "a+")
         password = PasswordGenerator()
         Euser = AuthenticateEncode(user)
         Epassword = AuthenticateEncode(password)
@@ -348,3 +314,37 @@ def AuthenticateEncode(Cin):
 def strinc(x):
     x = int(x) + 1
     return "%03d" %num
+
+while inputs:
+    read = select([tcp,udp], [], [])
+    for s in read:
+        ####################################
+        ##  MultiThreaded SMTP over TCP   ##
+        ####################################
+        if(read[0]):
+            try:
+                print("TCP Connecting\n")
+                connection, client_address = s.accept()
+                _thread.start_new_thread(SMTP, (connection,sys.argv[2]))
+            except Exception as e:
+                print("Error: %s\n" %e)
+                tcp.close()
+                print("TCP Socket Closed\n")
+                sys.exit(1)
+        ######################
+        ##  HTTP over UDP   ##
+        ######################
+        elif(read[1]):
+            try:
+                HTTP(sys.argv[3])
+            except Exception as e:
+                print("Error: %s\n" %e)
+                udp.close()
+                print("UDP Socket Closed\n")
+                sys.exit(1)
+        else:
+            print("Error: %s is not TCP or UDP\n" % s)
+            tcp.close()
+            udp.close()
+            sys.exit(1)
+

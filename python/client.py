@@ -42,6 +42,43 @@ sendOrRecieve = input().upper()
 if(sendOrRecieve.find('SEND') == 0):
     clientSocket = socket(AF_INET, SOCK_STREAM)
     clientSocket.connect(TCP_ServerAddr)
+    ##################
+    #TCP interaction
+    ##################
+    while 1:
+        cmsg = input()
+        clientSocket.send(cmsg.encode())
+        smsg = clientSocket.re
+        userData = ""cv(MAX).decode()
+        if(smsg.find("221 Bye") == 0):
+            print(smsg)
+            sys.exit()
+        elif(smsg.find("334 username") == 0):
+            print(smsg)
+            user = input()
+            Euser = AuthenticateEncode(user)
+            clientSocket.send(Euser.decode())
+        elif(smsg.find("334 password") == 0 or smsg.find("535 reEnter password") == 0):
+            print(smsg)
+            password = input()
+            Epassword = AuthenticateEncode(password)
+            clientSocket.send(Epassword)
+        elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
+            print(smsg)
+            datamsg = []
+            i = 0
+            while True:
+                data = input()
+                if data == '.':
+                    datamessage = '\n'.join(datamsg)
+                    clientSocket.send(datamessage.encode())
+                    break
+                else:
+                    datamsg.append(data)
+        else:
+            print(smsg)
+    clientSocket.close()
+
 elif(sendOrRecieve.find('RECIEVE') == 0):
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     init = "200 Ready"
@@ -63,43 +100,6 @@ elif(sendOrRecieve.find('RECIEVE') == 0):
         sys.exit()
 else:
     print('invalid selection')
-
-##################
-#TCP interaction
-##################
-while 1:
-    cmsg = input()
-    clientSocket.send(cmsg.encode())
-    smsg = clientSocket.recv(MAX).decode()
-    if(smsg.find("221 Bye") == 0):
-        print(smsg)
-        sys.exit()
-    elif(smsg.find("334 username") == 0):
-        print(smsg)
-        user = input()
-        Euser = AuthenticateEncode(user)
-        clientSocket.send(Euser.decode())
-    elif(smsg.find("334 password") == 0 or smsg.find("535 reEnter password") == 0):
-        print(smsg)
-        password = input()
-        Epassword = AuthenticateEncode(password)
-        clientSocket.send(Epassword)
-    elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
-        print(smsg)
-        datamsg = []
-        i = 0
-        while True:
-            data = input()
-            if data == '.':
-                datamessage = '\n'.join(datamsg)
-                clientSocket.send(datamessage.encode())
-                break
-            else:
-                datamsg.append(data)
-    else:
-        print(smsg)
-
-clientSocket.close()
 
 ######################################################
 ##  Authenticate clear text input with base64       ##
