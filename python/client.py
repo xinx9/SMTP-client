@@ -60,62 +60,63 @@ def AuthenticateDecode(Ein):
 print("Would you like to send or recieve?")
 sendOrRecieve = input(">").upper()
 if(sendOrRecieve.find("SEND") == 0):
-    TCP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
-    clientSocket = socket(AF_INET, SOCK_STREAM)
-    clientSocket.connect(TCP_ServerAddr)
-    ##################
-    #TCP interaction
-    ##################
     while True:
-        #--------------------------------------------#
-        cmsg = input(">")
-        if(len(cmsg) == 0):
-            while(len(cmsg) < 1):
-                print("Please enter a command\n")
-                cmsg = input(">")
-        
-        clientSocket.send(cmsg.encode())
-        smsg = clientSocket.recv(MAX).decode()
-        
-        if(smsg.find("221") == 0):
-            print(smsg)
-            clientSocket.close()
-            sys.exit()
-        elif(smsg.find("334 username:") == 0):
-            user = input(smsg)
-            Euser = AuthenticateEncode(user)
-            clientSocket.send(str(Euser).encode())
+        TCP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
+        clientSocket = socket(AF_INET, SOCK_STREAM)
+        clientSocket.connect(TCP_ServerAddr)
+        ##################
+        #TCP interaction
+        ##################
+        while True:
+            #--------------------------------------------#
+            cmsg = input(">")
+            if(len(cmsg) == 0):
+                while(len(cmsg) < 1):
+                    print("Please enter a command\n")
+                    cmsg = input(">")
+            
+            clientSocket.send(cmsg.encode())
             smsg = clientSocket.recv(MAX).decode()
-            if(smsg.find("334") == 0 or smsg.find("535") == 0):
-                while(smsg != "235"):
-                    password = input(smsg)
-                    Epassword = AuthenticateEncode(password)
-                    clientSocket.send(str(Epassword).encode())                    
-                    smsg = clientSocket.recv(MAX).decode()
-            elif(smsg.find("330") == 0):
-                x = AuthenticateDecode(smsg.split()[1])
-                print("your password is: " + x)
-                #time.sleep(5)
-            else:
+            
+            if(smsg.find("221") == 0):
                 print(smsg)
-        elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
-            print(smsg)
-            datamsg = []
-            i = 0
-            while True:
-                data = input()
-                if data == '.':
-                    datamessage = "\n".join(datamsg)
-                    clientSocket.send(datamessage.encode())
+                clientSocket.close()
+                sys.exit()
+            elif(smsg.find("334 username:") == 0):
+                user = input(smsg)
+                Euser = AuthenticateEncode(user)
+                clientSocket.send(str(Euser).encode())
+                smsg = clientSocket.recv(MAX).decode()
+                if(smsg.find("334") == 0 or smsg.find("535") == 0):
+                    while(smsg != "235"):
+                        password = input(smsg)
+                        Epassword = AuthenticateEncode(password)
+                        clientSocket.send(str(Epassword).encode())                    
+                        smsg = clientSocket.recv(MAX).decode()
+                elif(smsg.find("330") == 0):
+                    x = AuthenticateDecode(smsg.split()[1])
+                    print("your password is: " + x)
+                    clientSocket.close()
+                    time.sleep(5)
                     break
                 else:
-                    datamsg.append(data)
-            print(clientSocket.recv(MAX).decode())
-        else:
-            print(smsg)
-        #--------------------------------------------#    
-    clientSocket.close()
-    sys.exit()
+                    print(smsg)
+            elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
+                print(smsg)
+                datamsg = []
+                i = 0
+                while True:
+                    data = input()
+                    if data == '.':
+                        datamessage = "\n".join(datamsg)
+                        clientSocket.send(datamessage.encode())
+                        break
+                    else:
+                        datamsg.append(data)
+                print(clientSocket.recv(MAX).decode())
+            else:
+                print(smsg)
+            #--------------------------------------------#    
 #########################################
 elif(sendOrRecieve.find("RECIEVE") == 0):
     UDP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
