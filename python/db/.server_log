@@ -1,0 +1,20 @@
+2019-04-05 02:38:53.900488 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> |  | 200 | TCP Connection
+2019-04-05 02:39:36.864706 | ('192.168.1.11', 34804) | 200 | 250 OK | Login Recieved: b'azQ0Nw==' : b'bW40Rmo0NDc='
+2019-04-05 02:39:36.864967 | ('192.168.1.11', 34804) | 200 | 250 Download | User Downloading files
+2019-04-05 02:39:36.866121 | ('192.168.1.11', 34804) | 200 | 250 Msg | User Downloading: 001.txt
+2019-04-05 02:39:36.866775 | ('192.168.1.11', 34804) | 200 | 250 Downloaded | User Finished Downloading Files
+2019-04-05 02:39:32.520073 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001)> |  | 200 | UDP Connection
+2019-04-05 02:42:48.147587 | ('192.168.1.11', 52118) | 200 | 250 OK | Login Recieved: b'azQ0Nw==' : b'bW40Rmo0NDc='
+2019-04-05 02:42:48.147857 | ('192.168.1.11', 52118) | 200 | 250 Download | User Downloading files
+2019-04-05 02:42:48.149403 | ('192.168.1.11', 52118) | 200 | 250 Msg | User Downloading: 001.txt
+2019-04-05 02:42:48.149617 | ('192.168.1.11', 52118) | 200 | 250 Downloaded | User Finished Downloading Files
+2019-04-05 02:42:43.018727 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001)> |  | 200 | UDP Connection
+2019-04-05 02:38:54.688268 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | HELO | 250 OK | HELO recieved
+2019-04-05 02:38:56.392986 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | AUTH | 330 b'bW40Rmo0NDc=' | New User Created: b'azQ0Nw==' : b'bW40Rmo0NDc='
+2019-04-05 02:39:03.511370 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | HELO | 250 OK | HELO recieved
+2019-04-05 02:39:06.257046 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | AUTH | 334 username:  | Username recieved: b'azQ0Nw=='
+2019-04-05 02:39:09.048516 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | AUTH | 334 password:  | Password recieved: b'bW40Rmo0NDc='
+2019-04-05 02:39:14.160393 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | MAIL FROM:K@K | 250 OK | MAIL FROM recieved: K@K
+2019-04-05 02:39:18.501598 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | RCPT TO:K@K | 250 OK | RCPT TO recieved: K@K
+2019-04-05 02:39:25.537337 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | DATA | 250 OK | Email Written
+2019-04-05 02:39:27.741620 | <socket.socket fd=6, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.1.11', 5001), raddr=('192.168.1.11', 40312)> | QUIT | 221 | User Disconected

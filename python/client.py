@@ -118,7 +118,6 @@ if(sendOrRecieve.find("SEND") == 0):
     sys.exit()
 #########################################
 elif(sendOrRecieve.find("RECIEVE") == 0):
-    print("fuck my shit up fam")
     UDP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     init = "200"
@@ -133,7 +132,7 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
         clientSocket.sendto(str(Epassword).encode(), UDP_ServerAddr)
         valid, saddr = clientSocket.recvfrom(MAX)
         if(valid.decode() == "250 OK"):
-            print(valid.decode())
+            print(valid.decode() + " Login Successful")
         elif(valid.decode() == "535"):
             while(valid.decode() != "250 OK"):
                 print("Invalid Credentials please Re-enter:\n")
@@ -144,11 +143,11 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
                 Epassword = AuthenticateEncode(password)
                 clientSocket.sendto(str(Epassword).encode(), UDP_ServerAddr)
                 valid , saddr = clientSocket.recvfrom(MAX)
-            print(valid.decode())
+            print(valid.decode() + " Login Successful")
     data , saddr = clientSocket.recvfrom(MAX)
     data = data.decode()
     if(data == "250 Download"):
-        message = "GET /db/" + username.upper() + "/ HTTP/1.1\nHost: " + sys.argv[1] + "\n"
+        message = "GET /db/" + username.upper() + "/ HTTP/1.1\nHost: " + sys.argv[1]
         clientSocket.sendto(message.encode(),UDP_ServerAddr)
         while(not data == "250 Downloaded"):
             data , saddr = clientSocket.recvfrom(MAX)
@@ -161,6 +160,8 @@ elif(sendOrRecieve.find("RECIEVE") == 0):
                 servermessage , saddr = clientSocket.recvfrom(MAX)
                 servermessage = servermessage.decode()
                 f.write(servermessage)
+        end, saddr = clientSocket.recvfrom(MAX)
+        print(end.decode())
         sys.exit()
     elif(data == "404: directory not found"):
         print(data)

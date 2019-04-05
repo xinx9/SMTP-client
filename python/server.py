@@ -38,15 +38,18 @@ MAX = 2048 # 2KB
 ######################
 ##  File Managment  ##
 ######################
-path = os.path.join(os.getcwd(), r'db')
+dbpath = os.path.join(os.getcwd(), r'db')
 upf = (os.path.join(os.getcwd() + "/db/.user-pass"))
+logs = (os.path.join(os.getcwd() + "/db/.server_log"))
 try:
-    if(not os.path.exists(path)):
-        os.makedirs(path)
-    if(not os.path.exists(path)):
-        f = open(upf, "w+")
+    if(not os.path.exists(dbpath)):
+        os.makedirs(dbpath)
+    if(not os.path.exists(upf)):
+        f = open(upf, "a+")
         f.close()
-
+    if(not os.path.exists(logs)):
+        f = open(logs, "a+")
+        f.close()
 except Exception as e:
     print("Error: %s" %e)
     sys.exit(1)
@@ -65,14 +68,12 @@ tcp = socket(AF_INET, SOCK_STREAM)
 TCP_ServerAddress = (sys.argv[1], int(sys.argv[2]))
 tcp.bind(TCP_ServerAddress)
 tcp.listen(5)
-print("TCP working")
 ##############################
 ##  UDP socket, and bind    ##
 ##############################
 udp = socket(AF_INET, SOCK_DGRAM)
 UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
 udp.bind(UDP_ServerAddress)
-print("UDP working")
 
 
 ##############################
@@ -81,7 +82,6 @@ print("UDP working")
 ##  alphanumeric password   ##
 ##############################
 def PasswordGenerator():
-    print("generating new password")
     password = ""
     for x in range(5):
         password += ''.join(random.choice(string.ascii_letters + string.digits))
@@ -95,13 +95,13 @@ def PasswordGenerator():
 ##  write user to .user_pass file   ##
 ######################################
 def CreateUser(user):
-    print("Creating new user\n")
     try:
         filepath = os.getcwd() + "/db/.user-pass"
         userpassfile = open(filepath, "a+")
         password = PasswordGenerator()
         userData = user + " : " + password
         userpassfile.write(userData + "\n")
+        userpassfile.close()
     except Exception as e:
         print("Error: %s" %e)
     return password
@@ -116,7 +116,7 @@ def CreateUser(user):
 def validate(userData):
     flag = False
     if(os.path.exists((os.path.join(os.getcwd() + "/db/.user-pass")))):
-        f = open((os.path.join(os.getcwd() + "/db/.user-pass")), "r")
+        f = open((os.path.join(os.getcwd() + "/db/.user-pass")), "r+")
         udb64 = f.readline()
         while udb64:
             if(udb64.find(userData) == 0):
@@ -126,7 +126,21 @@ def validate(userData):
             udb64 = f.readline()
         f.close()
     return flag
-    
+
+def validateUser(username):
+    flag = False
+    if(os.path.exists((os.path.join(os.getcwd() + "/db/.user-pass")))):
+        f = open((os.path.join(os.getcwd() + "/db/.user-pass")), "r+")
+        user = f.readline()
+        user = user.split(":")[0]
+        while user:
+            if(user.find(username) == 0):
+                flag = True
+            else:
+                flag = False
+            user = f.readline()
+        f.close()
+    return flag
 ##############################################
 ##  Encode/Decode text input with base64    ##
 ##  Cin = clear text input                  ## 
@@ -154,11 +168,20 @@ def strinc(x):
     x = int(x) + 1
     return "%03d" %x
 
+def logging(conn, protocol, command, response, description):
+    log = (str(datetime.datetime.now()) + " | " +
+            str(conn) + " | " + 
+            command + " | " + 
+            response + " | " + 
+            description + "\n")
+    print(log)
+    return log
 ################################
 ##  SMTP Email write Service  ##
 ################################
 def SMTP(conn,tport):
     count = 0
+    serverlog = open(logs, "a+")
     while True:
         try:
             command = conn.recv(MAX).decode().upper()
@@ -167,12 +190,12 @@ def SMTP(conn,tport):
         if((command == "HELO") and count == 0):
             response = "250 OK"
             conn.send(response.encode())
+            serverlog.write(logging(conn, "SMTP", command,response, "HELO recieved"))
             count += 1
         elif((command == "AUTH") and count == 1):
             ##########################
             ##  Request Username    ##
             ##########################
-            print("user req")
             response = "334 username: "
             conn.send(response.encode())
             ######################
@@ -182,12 +205,12 @@ def SMTP(conn,tport):
             ###########################
             ##  validate Username    ##
             ###########################
-            flg = validate(username)
+            flg = validateUser(username)
             if(flg):
+                serverlog.write(logging(conn, "SMTP", command,response, "Username recieved: " + username))
                 ##########################
                 ##  Request Password    ##
                 ##########################
-                print("pass req")
                 response = "334 password: "
                 conn.send(response.encode())
                 ######################
@@ -196,11 +219,11 @@ def SMTP(conn,tport):
                 password = conn.recv(MAX).decode()
                 x = (username + " : " + password)
                 dootyflag = validate(x)
-                print(dootyflag)
                 ##########################
                 ##  Invalid Password    ##
                 ##########################
                 while(not dootyflag):
+                    serverlog.write(logging(conn, "SMTP", command,response, "Password Invalid: " + password))
                     ##############################
                     ##  Request Valid Password  ##
                     ##  and validate Password   ##
@@ -210,17 +233,18 @@ def SMTP(conn,tport):
                     password = conn.recv(MAX).decode()
                     pwck = username + " : " + password
                     dootyflag = validate(pwck)
+                serverlog.write(logging(conn, "SMTP", command,response, "Password recieved: " + password))
                 response = "235"
                 conn.send(response.encode())
                 count += 1
             else:
-                print("new user")
                 ##################
                 ##  New User    ##
                 ##################
                 newpass = CreateUser(username)
                 response = "330 " + newpass
                 conn.send(response.encode())
+                serverlog.write(logging(conn, "SMTP", command,response, "New User Created: " + username + " : " + newpass))
                 count = 0
         elif((command.find("MAIL FROM") == 0 ) and count == 2):
             ##########################
@@ -229,21 +253,24 @@ def SMTP(conn,tport):
             EmailSend = command[10:len(command)]
             response = "250 OK"
             conn.send(response.encode())
+            serverlog.write(logging(conn, "SMTP", command,response, "MAIL FROM recieved: " + EmailSend))
             count += 1
         elif((command.find("RCPT TO") == 0 ) and count == 3):
             ##########################
             ##  Who is getting data ##
             ##########################
             EmailRecv = command[8:len(command)]
-            touser = EmailRecv.split("@")
+            touser = EmailRecv.split("@")[0]
             try:
-                CurrentDir = os.path.join(path + "/" + touser[0])
+                CurrentDir = os.path.join(os.getcwd() + "/db/" + touser.upper())
                 if(not os.path.exists(CurrentDir)):
                     os.makedirs(CurrentDir)
+                    serverlog.write(logging(conn,"Server Command","200", CurrentDir + " CREATED"))
             except Exception as e:
                 print("Error: %s" %e)
             response = "250 OK"
             conn.send(response.encode())
+            serverlog.write(logging(conn, "SMTP", command,response, "RCPT TO recieved: " + EmailRecv))
             count += 1
         elif((command == "DATA") and count == 4):
             response = '354 Send message content; End with <CLRF>.<CLRF>'
@@ -274,18 +301,21 @@ def SMTP(conn,tport):
                 print("Error: %s\n" %e)
             response = "250 OK"
             conn.send(response.encode())
+            serverlog.write(logging(conn, "SMTP", command,response, "Email Written"))
             count = 2
         elif(command == "QUIT"):
             try:
                 count = 0
                 response = "221"
                 conn.send(response.encode())
+                serverlog.write(logging(conn, "SMTP", command,response, "User Disconected"))
             except Exception as e:
                 print("\n")
-        elif(command == "LOGOUT" and count > 2):
+        elif(command == "LOGOUT" and count >= 2):
             try:
                 response = "220"
                 conn.send(response.encode())
+                serverlog.write(logging(conn, "SMTP", command,response, "User Logged Out"))
                 count = 0
             except Exception as e:
                 print("\n")
@@ -303,7 +333,7 @@ def SMTP(conn,tport):
                 print("\n")
         elif(command == "HELP"):
             try:
-                response = "\nHELP\nQUIT\nLOGOUT\n1)HELO\n2)AUTH\n3)MAIL FROM:EMAIL@*.*\n4)RCPT TO:\n5)DATA<CLRF>body<CLRF>.<CLRF>\n"
+                response = "\nHELP\nQUIT\nLOGOUT\n1)HELO\n2)AUTH\n3)MAIL FROM:EMAIL@*.*\n4)RCPT TO:EMAIL@*.*\n5)DATA<CLRF>body<CLRF>.<CLRF>\n"
                 conn.send(response.encode())
             except Exception as e:
                 print("\n")
@@ -334,25 +364,25 @@ def SMTP(conn,tport):
                 count = 0
             except Exception as e:
                 count = 0
-    
+    serverlog.close()
 
 ###############################
 ##  HTTP Email read Service  ##
 ###############################
 def HTTP(uport):
+    serverlog = open(logs, "a+")
     cready, caddr = udp.recvfrom(MAX)
     cready = cready.decode()
     if(cready == "200"):
         response = "200"
         udp.sendto(response.encode(),caddr)
-        print("user Req")
         user, caddr = udp.recvfrom(MAX)
         user = user.decode()
-        print("pass Req")
         password, caddr = udp.recvfrom(MAX)
         password = password.decode()
         userData = user + " : " + password
         while(not validate(userData)):
+            serverlog.write(logging(caddr,"HTTP",cready,response, "Login Failed: " + userData))
             response = "535"
             udp.sendto(response.encode(),caddr)
             user, caddr = udp.recvfrom(MAX)
@@ -360,28 +390,25 @@ def HTTP(uport):
             password, caddr = udp.recvfrom(MAX)
             password = password.decode()
             userData = user + " : " + password
-            print(validate(userData))
-        print(validate(userData))
         response = "250 OK"
         udp.sendto(response.encode(),caddr)
+        serverlog.write(logging(caddr,"HTTP",cready,response, "Login Recieved: " + userData))
         response = "250 Download"
         udp.sendto(response.encode(),caddr)
-
+        serverlog.write(logging(caddr,"HTTP",cready,response, "User Downloading files"))
         getrequest, caddr = udp.recvfrom(MAX)
         getrequest = getrequest.decode()
         userpath = getrequest.split()[1]
         username = userpath.split("/")[2].upper()
         maildir = os.path.join(os.getcwd() + "/db/" + username)
-        print(maildir)
         try:
             if(not os.path.exists(maildir)):
                 response = "404: directory not found"
                 udp.sendto(response.encode(), caddr)
-                print("404 Directory not found")
+                serverlog.write(logging(caddr,"HTTP",cready,response, "404: Directory not found"))
             else:
                 files = os.listdir(maildir)
                 files = sorted(files, reverse = True)
-                print(files)
                 i = 0
                 while i < len(files):
                     mail = files[i]
@@ -390,38 +417,40 @@ def HTTP(uport):
                     mail = mail + ".txt"
                     f = open(filepath,"r")
                     message = f.read()
-                
                     response = "250 File"
                     udp.sendto(response.encode(), caddr)
                     udp.sendto(mail.encode(), caddr)
-                
                     response = "250 Msg"
                     udp.sendto(response.encode(), caddr)
-                    message = getrequest + "\n" + message
+                    message = getrequest + "\nContent-Type: text/plain\n\n" + message + "\n"
                     udp.sendto(message.encode(), caddr)
-                
+                    serverlog.write(logging(caddr,"HTTP",cready,response, "User Downloading: " + mail))
                     f.close()
-                    print(mail + " sent")
                     i+=1
                 response = "250 Downloaded"
                 udp.sendto(response.encode(), caddr)
+                serverlog.write(logging(caddr,"HTTP",cready,response, "User Finished Downloading Files"))
+                modmessage = "New files Downloaded. Check contents in your current directory."
+                udp.sendto(modmessage.encode(),caddr)
         except Exception as e:
             print("Error: %s" %e)
-        modmessage = "New file Received. Check contents in your directory."
-        udp.sendto(modmessage.encode(),caddr)
-
+        
+    serverlog.close()
 
 input = [tcp,udp]
 while True:
+    serverlog = open(logs, "a+")
     inputready,outputready,exceptready = select(input,[],[])
     for s in inputready:
         if s == tcp:
-            print("tcp open")
             connection, client_address = s.accept()
+            serverlog.write(logging(connection,"TCP","","200","TCP Connection"))
             _thread.start_new_thread(SMTP, (connection,sys.argv[2]))
+            serverlog.close()
         elif s == udp:
-            print("udp open")
+            serverlog.write(logging(connection,"UDP","","200","UDP Connection"))
             threadUDP = Thread(target = HTTP(sys.argv[3]))
             threadUDP.start()
+            serverlog.close()
         else:
             print ("unknown socket:", s)

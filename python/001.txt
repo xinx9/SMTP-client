@@ -1,7 +1,20 @@
-GET /db/xinx/ HTTP/1.1
+GET /db/K/ HTTP/1.1
 Host: 192.168.1.11
+Content-Type: text/plain
 
-Date: Thursday 04 04 2019 17:29:15
-From: XINX@GIGASMURF.GG
-To: XINX@NOTGIGASMUR.GG
-Subject: IT SMELL LIKE BROKE IN HERE
+Date: Friday 05 04 2019 02:39:19
+From: K@K
+To: K@K
+Subject: yo my guy
+it's ya boi
+
+GET /db/K/ HTTP/1.1
+Host: 192.168.1.11
+Content-Type: text/plain
+
+Date: Friday 05 04 2019 02:39:19
+From: K@K
+To: K@K
+Subject: yo my guy
+it's ya boi
+
