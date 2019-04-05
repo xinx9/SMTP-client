@@ -69,9 +69,15 @@ if(sendOrRecieve.find("SEND") == 0):
     while True:
         #--------------------------------------------#
         cmsg = input(">")
+        if(len(cmsg) == 0):
+            while(len(cmsg) < 1):
+                print("Please enter a command\n")
+                cmsg = input(">")
+        
         clientSocket.send(cmsg.encode())
         smsg = clientSocket.recv(MAX).decode()
-        if(smsg.find("221 Bye") == 0):
+        
+        if(smsg.find("221") == 0):
             print(smsg)
             clientSocket.close()
             sys.exit()
@@ -80,13 +86,18 @@ if(sendOrRecieve.find("SEND") == 0):
             Euser = AuthenticateEncode(user)
             clientSocket.send(str(Euser).encode())
             smsg = clientSocket.recv(MAX).decode()
-            if(smsg.find("334 password:") == 0 or smsg.find("535 re-enter password:") == 0):
-                password = input(smsg)
-                Epassword = AuthenticateEncode(password)
-                clientSocket.send(Epassword.encode())
+            if(smsg.find("334") == 0 or smsg.find("535") == 0):
+                while(smsg != "235"):
+                    password = input(smsg)
+                    Epassword = AuthenticateEncode(password)
+                    clientSocket.send(str(Epassword).encode())                    
+                    smsg = clientSocket.recv(MAX).decode()
             elif(smsg.find("330") == 0):
-                print("your password is: " + AuthenticateDecode(smsg.split()[1]))
-                time.sleep(5)
+                x = AuthenticateDecode(smsg.split()[1])
+                print("your password is: " + x)
+                #time.sleep(5)
+            else:
+                print(smsg)
         elif(smsg.find("354 Send message content; End with <CLRF>.<CLRF>") == 0):
             print(smsg)
             datamsg = []
@@ -99,6 +110,7 @@ if(sendOrRecieve.find("SEND") == 0):
                     break
                 else:
                     datamsg.append(data)
+            print(clientSocket.recv(MAX).decode())
         else:
             print(smsg)
         #--------------------------------------------#    
@@ -106,49 +118,48 @@ if(sendOrRecieve.find("SEND") == 0):
     sys.exit()
 #########################################
 elif(sendOrRecieve.find("RECIEVE") == 0):
+    print("fuck my shit up fam")
     UDP_ServerAddr = (sys.argv[1], int(sys.argv[2]))
     clientSocket = socket(AF_INET, SOCK_DGRAM)
-    init = "200 Ready"
+    init = "200"
     clientSocket.sendto(init.encode(), UDP_ServerAddr)
-    auth = clientSocket.recvfrom(MAX)
-    
+    auth , saddr = clientSocket.recvfrom(MAX)
     if(auth.decode() == "200"):
         username = input("username: ")
         password = input("password: ")
         Eusername = AuthenticateEncode(username)
-        clientSocket.sendto(Eusername.encode(), UDP_ServerAddr)
+        clientSocket.sendto(str(Eusername).encode(), UDP_ServerAddr)
         Epassword = AuthenticateEncode(password)
-        clientSocket.sendto(Epassword.encode(), UDP_ServerAddr)
-        valid = clientSocket.recvfrom(MAX)
+        clientSocket.sendto(str(Epassword).encode(), UDP_ServerAddr)
+        valid, saddr = clientSocket.recvfrom(MAX)
         if(valid.decode() == "250 OK"):
-            Print(valid.decode())
+            print(valid.decode())
         elif(valid.decode() == "535"):
             while(valid.decode() != "250 OK"):
                 print("Invalid Credentials please Re-enter:\n")
                 username = input("username: ")
                 password = input("password: ")
                 Eusername = AuthenticateEncode(username)
-                clientSocket.sendto(Eusername.encode(), UDP_ServerAddr)
+                clientSocket.sendto(str(Eusername).encode(), UDP_ServerAddr)
                 Epassword = AuthenticateEncode(password)
-                clientSocket.sendto(Epassword.encode(), UDP_ServerAddr)
-                valid = clientSocket.recvfrom(MAX)
+                clientSocket.sendto(str(Epassword).encode(), UDP_ServerAddr)
+                valid , saddr = clientSocket.recvfrom(MAX)
             print(valid.decode())
-    data = clientSocket.recvfrom(MAX)
+    data , saddr = clientSocket.recvfrom(MAX)
     data = data.decode()
     if(data == "250 Download"):
-        message = "GET /db/" + username + "/ HTTP/1.1\nHost: " + sys.argv[1] + "\n"
-        print(message)
+        message = "GET /db/" + username.upper() + "/ HTTP/1.1\nHost: " + sys.argv[1] + "\n"
         clientSocket.sendto(message.encode(),UDP_ServerAddr)
         while(not data == "250 Downloaded"):
-            data = clientSocket.recvfrom(MAX)
+            data , saddr = clientSocket.recvfrom(MAX)
             data = data.decode()
             if(data == "250 File"):
-                filename = clientSocket.recvfrom(MAX)
+                filename , saddr = clientSocket.recvfrom(MAX)
                 filename.decode()
                 f = open(filename, "a+")
             elif(data == "250 Msg"):
-                servermessage = clientSocket.recvfrom(MAX)
-                servermessage.decode()
+                servermessage , saddr = clientSocket.recvfrom(MAX)
+                servermessage = servermessage.decode()
                 f.write(servermessage)
         sys.exit()
     elif(data == "404: directory not found"):
