@@ -1,0 +1,305 @@
+--- ../../fun-stuff/python/server.py	2019-04-11 04:35:17.110000000 +0000
++++ ./server.py	2019-05-01 02:03:56.790000000 +0000
+@@ -1,24 +1,12 @@
+ ##############################################
+ ##############################################
+-##                                          ##
+-##  Name: Brandon Burke                     ##
+-##                                          ##
+-##  Project Name: server.py                 ##
+-##                                          ##
+-##  Definition: this is a SMTP server       ##
+-##  which both takes a clients request      ##
+-##  to send an email to an authenticated    ##
+-##  user, or read their email.              ##
+-##                                          ##
+-##  Features:                               ##
+-##      TCP Multithreaded (write)           ##
+-##      UDP (read)                          ##
+-##      Authenticate Users                  ##
+-##      Base64 + salt Password Generator    ##
+-##      Write emails to file                ##
+-##      Send email data over udp            ##
+-##      Graceful exit                       ##
+-##                                          ##
++##                                                                                                      
++##  Name: Brandon Burke                                                                  
++##                                                                                                      
++##  Project Name: server.py                                                               
++##                                                                                                      
++##  Description: smtp server with TCP/UDP with TLSv1.2 for security        
++##
+ ##############################################
+ ##############################################
+ from socket import *
+@@ -32,6 +20,8 @@
+ import random
+ import string
+ import time
++import ssl
++import hashlib
+ 
+ MAX = 2048 # 2KB
+ 
+@@ -41,6 +31,8 @@
+ dbpath = os.path.join(os.getcwd(), r'db')
+ upf = (os.path.join(os.getcwd() + "/db/.user-pass"))
+ logs = (os.path.join(os.getcwd() + "/db/.server_log"))
++cert = (os.path.join(os.getcwd() + "/.sscert.pem"))
++
+ try:
+     if(not os.path.exists(dbpath)):
+         os.makedirs(dbpath)
+@@ -50,6 +42,14 @@
+     if(not os.path.exists(logs)):
+         f = open(logs, "a+")
+         f.close()
++    
++    serverlog = open(logs, "a+")
++
++    if(not os.path.exists(cert)):
++        ## generate a self signed certificate
++        os.system("openssl req -new -x509 -keyout .sscert.pem -out .sscert.pem -days 365 -nodes -subj '/' ")
++        serverlog.write("Generating new Certificate:" + str(cert))
++        print(("Generating new Certificate:" + str(cert)))
+ except Exception as e:
+     print("Error: %s" %e)
+     sys.exit(1)
+@@ -62,6 +62,11 @@
+     sys.exit(1)
+ 
+ ####################################
++##  SSL ctx with self signed certificate
++####################################
++ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
++ctx.load_cert_chain(certfile='./.sscert.pem')
++####################################
+ ##  TCP socket, bind, and listen  ##
+ ####################################
+ tcp = socket(AF_INET, SOCK_STREAM)
+@@ -75,55 +80,24 @@
+ UDP_ServerAddress = (sys.argv[1], int(sys.argv[3]))
+ udp.bind(UDP_ServerAddress)
+ 
+-
+-##############################
+-##  password generator      ##
+-##  create a 5 character    ## 
+-##  alphanumeric password   ##
+-##############################
+-def PasswordGenerator():
+-    password = ""
+-    for x in range(5):
+-        password += ''.join(random.choice(string.ascii_letters + string.digits))
+-    pw = AuthenticateEncode(password)
+-    pw = str(pw)
+-    return pw
+-
+-######################################
+-##  Create user on first time login ##
+-##  call Generate Random Password   ##
+-##  write user to .user_pass file   ##
+-######################################
+-def CreateUser(user):
+-    try:
+-        filepath = os.getcwd() + "/db/.user-pass"
+-        userpassfile = open(filepath, "a+")
+-        password = PasswordGenerator()
+-        userData = user + " : " + password
+-        userpassfile.write(userData + "\n")
+-        userpassfile.close()
+-    except Exception as e:
+-        print("Error: %s" %e)
+-    return password
+-
+ ##############################################
+-##  Validate user                           ##
+-##  compares userData to encodedUserData    ##
+-##  sets flag to True if successful compare ##
+-##  userData = Euser:Epassword              ##
+-##  udb64 = User Data Base64                ##
++##  Validate user                           
++##  compares userData to encodedUserData    
++##  sets flag to True if successful compare 
++##  userData = Euser:Epassword              
++##  udsha1 = User Data sha1                
+ ##############################################
+ def validate(userData):
+     flag = False
+     if(os.path.exists((os.path.join(os.getcwd() + "/db/.user-pass")))):
+         f = open((os.path.join(os.getcwd() + "/db/.user-pass")), "r+")
+-        udb64 = f.readline()
+-        while udb64:
+-            if(udb64.find(userData) == 0):
++        udsha1 = f.readline()
++        while udsha1:
++            if(udsha1.find(userData) == 0):
+                 flag = True
+             else:
+                 flag = False
+-            udb64 = f.readline()
++            udsha1 = f.readline()
+         f.close()
+     return flag
+ 
+@@ -141,6 +115,34 @@
+             user = f.readline()
+         f.close()
+     return flag
++
++##############################
++##  password generator      ##
++##  create a 5 character    ## 
++##  alphanumeric password   ##
++##############################
++def PasswordGenerator():
++    password = ""
++    for x in range(5):
++        password += ''.join(random.choice(string.ascii_letters + string.digits))
++    return password
++
++######################################
++##  Create user on first time login ##
++##  call Generate Random Password   ##
++##  write user to .user_pass file   ##
++######################################
++def CreateUser(user, passwd):
++    try:
++        filepath = os.getcwd() + "/db/.user-pass"
++        userpassfile = open(filepath, "a+")
++        userData = user + " : " + passwd
++        userpassfile.write(userData + "\n")
++        userpassfile.close()
++    except Exception as e:
++        print("Error: %s" %e)
++    return userData
++
+ ##############################################
+ ##  Encode/Decode text input with base64    ##
+ ##  Cin = clear text input                  ## 
+@@ -148,7 +150,7 @@
+ ##  Ein = encoded input                     ##  
+ ##  Bin = binary input                      ##   
+ ##############################################
+-def AuthenticateEncode(Cin):
++def PassEncode(Cin):
+     salt = "447"
+     Sin = Cin + salt
+     Bin = Sin.encode("utf-8")
+@@ -156,7 +158,7 @@
+     Ein = str(Ein)
+     return Ein
+ 
+-def AuthenticateDecode(Ein):
++def PassDecode(Ein):
+     salt = "447"
+     Ein = Ein[2:-1]
+     Sin = base64.b64decode(Ein)
+@@ -164,6 +166,15 @@
+     Cin = Sin[:len(Sin)-3]
+     return Cin
+ 
++##############################################
++##  SHA1 encode with salted text
++##############################################
++def AuthenticateEncode(cleartxt):
++    salt = "447"
++    saltedtext = cleartxt + salt
++    ciphertext = hashlib.sha256(saltedtext.encode())
++    return ciphertext.hexdigest()
++    
+ def strinc(x):
+     x = int(x) + 1
+     return "%03d" %x
+@@ -176,15 +187,15 @@
+             description + "\n")
+     print(log)
+     return log
++
+ ################################
+ ##  SMTP Email write Service  ##
+ ################################
+ def SMTP(conn,tport):
+     count = 0
+-    serverlog = open(logs, "a+")
+     while True:
+         try:
+-            command = conn.recv(MAX).decode().upper()
++            command = conn.read(MAX).decode().upper()
+         except Exception as e:
+             print("\n")
+         if((command == "HELO") and count == 0):
+@@ -201,7 +212,7 @@
+             ######################
+             ##  Get Username    ##
+             ######################
+-            username = conn.recv(MAX).decode()
++            username = conn.read(MAX).decode()
+             ###########################
+             ##  validate Username    ##
+             ###########################
+@@ -216,7 +227,7 @@
+                 ######################
+                 ##  get Username    ##
+                 ######################
+-                password = conn.recv(MAX).decode()
++                password = conn.read(MAX).decode()
+                 x = (username + " : " + password)
+                 dootyflag = validate(x)
+                 ##########################
+@@ -230,7 +241,7 @@
+                     ##############################
+                     response = "535 re-enter password:"
+                     conn.send(response.encode())
+-                    password = conn.recv(MAX).decode()
++                    password = conn.read(MAX).decode()
+                     pwck = username + " : " + password
+                     dootyflag = validate(pwck)
+                 serverlog.write(logging(conn, "SMTP", command,response, "Password recieved: " + password))
+@@ -241,10 +252,13 @@
+                 ##################
+                 ##  New User    ##
+                 ##################
+-                newpass = CreateUser(username)
+-                response = "330 " + newpass
++                passwd = PasswordGenerator()
++                password = PassEncode(passwd)
++                cipherpw = AuthenticateEncode(passwd)
++                newpass = CreateUser(username, cipherpw)
++                response = "330 " + password
+                 conn.send(response.encode())
+-                serverlog.write(logging(conn, "SMTP", command,response, "New User Created: " + username + " : " + newpass))
++                serverlog.write(logging(conn, "SMTP", command,response, "New User Created: " + newpass))
+                 count = 0
+         elif((command.find("MAIL FROM") == 0 ) and count == 2):
+             ##########################
+@@ -287,7 +301,7 @@
+             else:
+                 EmailFile = "001.email"            
+             date = "Date: {:%A %d %m %Y %H:%M:%S}".format(datetime.datetime.now())
+-            data = conn.recv(MAX).decode()
++            data = conn.read(MAX).decode()
+             body = data
+             filepath = os.path.join(CurrentDir, EmailFile)
+             try:
+@@ -370,7 +384,6 @@
+ ##  HTTP Email read Service  ##
+ ###############################
+ def HTTP(uport):
+-    serverlog = open(logs, "a+")
+     cready, caddr = udp.recvfrom(MAX)
+     cready = cready.decode()
+     if(cready == "200"):
+@@ -443,8 +456,10 @@
+     inputready,outputready,exceptready = select(input,[],[])
+     for s in inputready:
+         if s == tcp:
+-            connection, client_address = s.accept()
+-            serverlog.write(logging(connection,"TCP","","200","TCP Connection"))
++            ssock, client_address = s.accept()
++            serverlog.write(logging(ssock,"TCP","","200","TCP Accept"))
++            connection = ctx.wrap_socket(ssock,server_side=True)
++            serverlog.write(logging(connection,"TLSv1.2","","443","TLSv1.2 Connection"))
+             _thread.start_new_thread(SMTP, (connection,sys.argv[2]))
+             serverlog.close()
+         elif s == udp:

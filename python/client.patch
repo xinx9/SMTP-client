@@ -1,0 +1,93 @@
+3,18c3,9
+< ##                                          ##
+< ##  Name: Brandon Burke                     ##
+< ##                                          ##
+< ##  Project Name: client.py                 ##
+< ##                                          ##
+< ##  Description: this program uses smtp     ##
+< ##  over TCP to send an email to another    ##
+< ##  authenticated user on the server        ##
+< ##  this program also uses HTTP over UDP    ##
+< ##  to read the users email                 ##
+< ##                                          ##
+< ##  Features:                               ##
+< ##      login                               ##
+< ##      write to server (TCP)               ##
+< ##      read from server (UDP)              ##
+< ##                                          ##
+---
+> ##                                                                                                      
+> ##  Name: Brandon Burke                                                                  
+> ##                                                                                                      
+> ##  Project Name: server.py                                                               
+> ##                                                                                                      
+> ##  Description: smtp client with TCP/UDP with TLSv1.2 for security        
+> ##
+29a21,23
+> import ssl
+> import hashlib
+> 
+42c36
+< def AuthenticateEncode(Cin):
+---
+> def PassEncode(Cin):
+49c43
+< def AuthenticateDecode(Ein):
+---
+> def PassDecode(Ein):
+56a51,59
+> ##############################################
+> ##  SHA1 encode with salted text
+> ##############################################
+> def AuthenticateEncode(cleartxt):
+>     salt = "447"
+>     saltedtext = cleartxt + salt
+>     ciphertext = hashlib.sha256(saltedtext.encode())
+>     return ciphertext.hexdigest()
+> 
+65,66c68,71
+<         clientSocket = socket(AF_INET, SOCK_STREAM)
+<         clientSocket.connect(TCP_ServerAddr)
+---
+>         csock = socket(AF_INET, SOCK_STREAM)
+>         ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+>         conn = ctx.wrap_socket(csock, server_side=False, server_hostname=sys.argv[1])
+>         conn.connect(TCP_ServerAddr)
+78,79c83,84
+<             clientSocket.send(cmsg.encode())
+<             smsg = clientSocket.recv(MAX).decode()
+---
+>             conn.send(cmsg.encode())
+>             smsg = conn.read(MAX).decode()
+83c88
+<                 clientSocket.close()
+---
+>                 conn.close()
+88,89c93,94
+<                 clientSocket.send(str(Euser).encode())
+<                 smsg = clientSocket.recv(MAX).decode()
+---
+>                 conn.send(Euser.encode())
+>                 smsg = conn.read(MAX).decode()
+94,95c99,100
+<                         clientSocket.send(str(Epassword).encode())                    
+<                         smsg = clientSocket.recv(MAX).decode()
+---
+>                         conn.send(Epassword.encode())                    
+>                         smsg = conn.read(MAX).decode()
+97c102
+<                     x = AuthenticateDecode(smsg.split()[1])
+---
+>                     x = PassDecode(smsg.split()[1])
+99c104
+<                     clientSocket.close()
+---
+>                     conn.close()
+112c117
+<                         clientSocket.send(datamessage.encode())
+---
+>                         conn.send(datamessage.encode())
+116c121
+<                 print(clientSocket.recv(MAX).decode())
+---
+>                 print(conn.read(MAX).decode())
